@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { Confirm } from "../components/Sheet";
 import { ProjectForm } from "../components/ProjectForm";
@@ -35,22 +36,18 @@ export function ProjectDetail({ project: p, go }: { project: Project; go: Go }) 
 
   return (
     <div className="page">
-      <header className="page-header" data-tauri-drag-region>
-        <button className="icon-btn" aria-label="Quay lại Dự án" onClick={() => go({ view: "projects" })}>
-          <Icon name="chevronLeft" stroke={2.2} />
-        </button>
-        <div className="page-actions">
-          <button className="icon-btn" aria-label="Nhắn tin cho khách" onClick={() => go({ view: "inbox", clientId: p.clientId })}>
-            <Icon name="message" />
-          </button>
-          <button className="icon-btn" aria-label="Sửa dự án" onClick={() => setEditing(true)}>
-            <Icon name="edit" />
-          </button>
-          <button className="icon-btn" aria-label="Xóa dự án" onClick={() => setDeleting(true)}>
-            <Icon name="trash" />
-          </button>
-        </div>
-      </header>
+      <Header
+        title={p.name}
+        eyebrow={`${clientOf(d, p.clientId)?.name ?? ""} · ${p.type}`}
+        back={{ label: "Dự án", onClick: () => go({ view: "projects" }) }}
+        actions={
+          <>
+            <button className="icon-btn" aria-label="Nhắn tin cho khách" title="Nhắn tin cho khách" onClick={() => go({ view: "inbox", clientId: p.clientId })}><Icon name="message" /></button>
+            <button className="icon-btn" aria-label="Sửa dự án" title="Sửa dự án" onClick={() => setEditing(true)}><Icon name="edit" /></button>
+            <button className="icon-btn" aria-label="Xóa dự án" title="Xóa dự án" onClick={() => setDeleting(true)}><Icon name="trash" /></button>
+          </>
+        }
+      />
 
       <div className="detail-hero">
         <div className="hero-photos">

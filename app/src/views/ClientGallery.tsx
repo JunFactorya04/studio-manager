@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { Field } from "../components/Sheet";
 import { actions, addDays, clientOf, fmtDate, today, useData, type Project } from "../store";
@@ -145,15 +146,12 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
 
   return (
     <div className="page">
-      <header className="page-header" data-tauri-drag-region>
-        <button className="icon-btn" aria-label="Quay lại dự án" onClick={() => go({ view: "projects", projectId: p.id })}>
-          <Icon name="chevronLeft" stroke={2.2} />
-        </button>
-        <div className="page-title" data-tauri-drag-region><span className="eyebrow">{p.name}</span><h1>Khách chọn ảnh</h1></div>
-        <div className="page-actions">
-          <button className="btn tinted sm" onClick={() => setMode("client")} disabled={pool.length === 0}><Icon name="eye" size={18} />Xem như khách</button>
-        </div>
-      </header>
+      <Header
+        title="Khách chọn ảnh"
+        eyebrow={p.name}
+        back={{ label: p.name, onClick: () => go({ view: "projects", projectId: p.id }) }}
+        actions={<button className="btn tinted sm" onClick={() => setMode("client")} disabled={pool.length === 0}><Icon name="eye" size={16} />Xem như khách</button>}
+      />
 
       <div className="two-col">
         <div className="col">

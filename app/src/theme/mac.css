@@ -78,7 +78,7 @@
 
   /* segmented control (NSSegmentedControl) */
   .segmented, .pills { height: 26px; padding: 2px; gap: 0; border-radius: 7px; background: var(--mac-hover); display: inline-flex; align-self: flex-start; overflow: visible; box-shadow: inset 0 0 0 0.5px var(--mac-border); }
-  .segmented button, .pill { height: 22px; padding: 0 10px; border-radius: 5px; font-size: var(--fs-callout); font-weight: 500; background: transparent; color: var(--mac-label); flex: none; }
+  .segmented button, .pill { height: 22px; padding: 0 10px; display: inline-flex; align-items: center; gap: 5px; border-radius: 5px; font-size: var(--fs-callout); font-weight: 500; background: transparent; color: var(--mac-label); flex: none; }
   .pill span { color: var(--mac-label-2); font-weight: 400; margin-left: 2px; }
   .segmented button.on, .pill.on { background: var(--mac-control); color: var(--mac-label); box-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.18), 0 0 0 0.5px var(--mac-control-border); }
   .pill.on span { opacity: 1; }
