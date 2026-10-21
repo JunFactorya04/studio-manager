@@ -231,7 +231,13 @@ export const actions = {
     if (!c) return;
     update((d) => ({ messages: [...d.messages, { id: uid(), clientId, channel: c.channel, dir: "out", text, at: new Date().toISOString(), read: true }] }));
   },
-  markRead(clientId: string) { update((d) => ({ messages: d.messages.map((m) => (m.clientId === clientId ? { ...m, read: true } : m)) })); },
+  receiveMessage(clientId: string, text: string) {
+    const c = state.clients.find((x) => x.id === clientId);
+    if (!c) return;
+    update((d) => ({ messages: [...d.messages, { id: uid(), clientId, channel: c.channel, dir: "in", text, at: new Date().toISOString(), read: true }] }));
+  },
+  markRead(clientId: string) {
+    if (!state.messages.some((m) => m.clientId === clientId && !m.read)) return; update((d) => ({ messages: d.messages.map((m) => (m.clientId === clientId ? { ...m, read: true } : m)) })); },
 
   updateSettings(patch: Partial<Data["settings"]>) { update((d) => ({ settings: { ...d.settings, ...patch } })); },
 };
