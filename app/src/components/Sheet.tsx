@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 // Modal sheet: centered dialog on desktop, bottom sheet on phones.
 export function Sheet({
@@ -10,7 +11,8 @@ export function Sheet({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  // Portal to <body> so a sheet opened from inside another sheet still covers the whole window.
+  return createPortal(
     <div className="sheet-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className={"sheet" + (wide ? " wide" : "")} role="dialog" aria-modal="true" aria-label={title}>
         <div className="sheet-head">
@@ -21,7 +23,8 @@ export function Sheet({
         <div className="sheet-body">{children}</div>
         {footer ? <div className="sheet-foot">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -183,7 +183,11 @@ export const nextInvoiceNo = (d: Data) => {
 
 // ---------- actions ----------
 export const actions = {
-  reset() { commit(seed()); },
+  reset() { commit({ ...seed(), settings: state.settings }); },
+  clearAll() {
+    commit({ version: 1, clients: [], projects: [], assets: [], invoices: [], payments: [], expenses: [], messages: [], activity: [], settings: state.settings });
+  },
+  replaceAll(data: Data) { commit(data); },
 
   addClient(c: Omit<Client, "id">) { const client = { ...c, id: uid() }; update((d) => ({ clients: [...d.clients, client] })); return client; },
   updateClient(id: string, patch: Partial<Client>) { update((d) => ({ clients: d.clients.map((c) => (c.id === id ? { ...c, ...patch } : c)) })); },

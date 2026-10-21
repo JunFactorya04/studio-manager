@@ -287,7 +287,7 @@ button.stat:hover { box-shadow: 0 0 0 1px var(--sep); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .confirm-text { font-size: 15px; color: var(--text-2); line-height: 1.5; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.chip-btn { height: 32px; padding: 0 12px; border-radius: 16px; background: var(--card); border: 0.5px solid var(--sep); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.chip-btn { white-space: nowrap; flex: none; height: 32px; padding: 0 12px; border-radius: 16px; background: var(--card); border: 0.5px solid var(--sep); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
 .chip-btn:hover { background: var(--fill); }
 .chip-btn.danger { color: var(--danger); }
 .tone-gray { color: #3c3c43; background: #ededf0; }
