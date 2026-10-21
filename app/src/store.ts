@@ -33,7 +33,7 @@ export interface Project {
   nasPath: string; total: number; note: string; createdAt: string; gallery?: Gallery;
 }
 export interface Asset {
-  id: string; projectId: string; base: string; rawPath?: string; jpgPath?: string;
+  id: string; projectId: string; base: string; rawPath?: string; jpgPath?: string; thumbPath?: string;
   bytes: number; checksum?: string; rating: number; mark: Mark; picked: boolean; color: string;
 }
 export interface Invoice { id: string; no: string; projectId: string; amount: number; due: string; note: string; issued: string }

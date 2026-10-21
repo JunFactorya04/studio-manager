@@ -1,5 +1,6 @@
 // Entry point shared by desktop (main.rs) and mobile builds.
-// Commands for NAS import, checksum and preview generation will be added here.
+
+mod media;
 
 #[tauri::command]
 fn app_version() -> String {
@@ -9,7 +10,13 @@ fn app_version() -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![app_version])
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![
+            app_version,
+            media::scan_source,
+            media::import_items,
+            media::folder_size
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Studio Manager");
 }
