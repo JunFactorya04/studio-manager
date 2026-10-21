@@ -5,6 +5,7 @@ import { useData } from "./store";
 import { Dashboard } from "./views/Dashboard";
 import { Projects } from "./views/Projects";
 import { ProjectDetail } from "./views/ProjectDetail";
+import { ClientGallery } from "./views/ClientGallery";
 import { Library } from "./views/Library";
 import { Inbox } from "./views/Inbox";
 import { Finance } from "./views/Finance";
@@ -27,7 +28,8 @@ export default function App() {
   const project = route.view === "projects" && route.projectId ? d.projects.find((p) => p.id === route.projectId) : undefined;
 
   let screen;
-  if (project) screen = <ProjectDetail key={project.id} project={project} go={go} />;
+  if (project && route.gallery) screen = <ClientGallery key={project.id} project={project} go={go} />;
+  else if (project) screen = <ProjectDetail key={project.id} project={project} go={go} />;
   else if (route.view === "projects") screen = <Projects go={go} />;
   else if (route.view === "library") screen = <Library go={go} route={route} />;
   else if (route.view === "inbox") screen = <Inbox go={go} route={route} />;
