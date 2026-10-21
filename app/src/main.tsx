@@ -5,7 +5,10 @@ import "./styles.css";
 import "./login.css";
 
 // macOS gets an overlay title bar, so the layout leaves room for the window buttons.
-if (navigator.userAgent.includes("Mac") && !/iPhone|iPad/.test(navigator.userAgent)) {
+import { needsCustomControls } from "./components/WindowControls";
+
+// Desktop app windows get a Mac-style title area: native on macOS, drawn by us on Windows.
+if ((navigator.userAgent.includes("Mac") && !/iPhone|iPad/.test(navigator.userAgent)) || needsCustomControls) {
   document.documentElement.classList.add("is-mac");
 }
 

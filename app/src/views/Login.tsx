@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent, type PointerEvent } from "react";
 import { Icon } from "../components/Icon";
+import { WindowControls } from "../components/WindowControls";
 
 // Glass login card. The card tilts toward the pointer and a light glare follows it.
 // Tilt values are written straight to CSS variables (no React re-render per mouse move).
@@ -49,7 +50,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         <span className="ribbon r2" />
         <span className="ribbon r3" />
       </div>
-      <div className="login-drag" data-tauri-drag-region />
+      <div className="login-drag" data-tauri-drag-region>
+        <WindowControls />
+      </div>
 
       <div className="login-card" ref={card}>
         <span className="glare" aria-hidden="true" />

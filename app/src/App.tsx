@@ -9,6 +9,7 @@ import { Library } from "./views/Library";
 import { Inbox } from "./views/Inbox";
 import { Finance } from "./views/Finance";
 import { Login } from "./views/Login";
+import { WindowControls } from "./components/WindowControls";
 
 export default function App() {
   const [signedIn, setSignedIn] = useState(false);
@@ -32,7 +33,9 @@ export default function App() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <div className="sidebar-drag" data-tauri-drag-region />
+        <div className="sidebar-drag" data-tauri-drag-region>
+          <WindowControls />
+        </div>
         <div className="sidebar-brand">Studio Manager</div>
         <nav aria-label="Điều hướng chính" className="sidebar-nav">
           {NAV.map((item) => {
