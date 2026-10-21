@@ -18,6 +18,7 @@ Trình quản lý studio ảnh: từ quản lý file (NAS + cloud) đến dự �
 - [x] Thiết kế giao diện iPhone (8 màn hình)
 - [x] Nền tảng: Tauri 2 + React (desktop và di động từ một mã nguồn)
 - [x] Giao diện: Tổng quan, Dự án, Chi tiết dự án, Thư viện, Tin nhắn, Tài chính (dữ liệu mẫu)
+- [x] Màn hình đăng nhập kính mờ (nghiêng và phản chiếu theo chuột)
 - [ ] Màn hình Nhập ảnh, Khách chọn ảnh
 - [ ] Lệnh Rust: nhập ảnh, checksum, tạo preview, đồng bộ cloud
 - [ ] Backend và database

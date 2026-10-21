@@ -8,9 +8,12 @@ import { ProjectDetail } from "./views/ProjectDetail";
 import { Library } from "./views/Library";
 import { Inbox } from "./views/Inbox";
 import { Finance } from "./views/Finance";
+import { Login } from "./views/Login";
 
 export default function App() {
+  const [signedIn, setSignedIn] = useState(false);
   const [route, setRoute] = useState<Route>({ view: "dashboard" });
+  if (!signedIn) return <Login onLogin={() => setSignedIn(true)} />;
   const go = (r: Route) => {
     setRoute(r);
     document.querySelector(".content")?.scrollTo(0, 0);
