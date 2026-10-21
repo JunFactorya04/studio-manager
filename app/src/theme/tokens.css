@@ -1,0 +1,90 @@
+/*
+  Studio Manager macOS skin — design tokens.
+  Based on Apple's macOS semantic colors and type scale (Human Interface Guidelines),
+  so the app reads like a native Mac app on Apple silicon Macs and still looks consistent on Windows.
+  Every component reads these variables; change the look here, not in components.
+*/
+:root {
+  /* System accent and colors (light) */
+  --sys-blue: #007aff; --sys-green: #28cd41; --sys-orange: #ff9500; --sys-red: #ff3b30;
+  --sys-pink: #ff2d55; --sys-purple: #af52de; --sys-indigo: #5856d6; --sys-teal: #59adc4;
+  --sys-yellow: #ffcc00; --sys-gray: #8e8e93;
+
+  /* Surfaces */
+  --mac-window: #ffffff;           /* content area (controlBackgroundColor) */
+  --mac-under: #f5f5f7;            /* grouped background behind boxes */
+  --mac-box: #ffffff;              /* widget / group box */
+  --mac-sidebar: rgba(236, 236, 238, 0.86);
+  --mac-toolbar: rgba(255, 255, 255, 0.82);
+  --mac-row-alt: #f7f7f9;          /* alternating table rows */
+  --mac-hover: rgba(0, 0, 0, 0.045);
+  --mac-selected: rgba(0, 0, 0, 0.075);
+  --mac-selected-focus: var(--sys-blue);
+  --mac-control: #ffffff;
+  --mac-control-border: rgba(0, 0, 0, 0.14);
+
+  /* Text (labelColor family) */
+  --mac-label: rgba(0, 0, 0, 0.88);
+  --mac-label-2: rgba(0, 0, 0, 0.55);
+  --mac-label-3: rgba(0, 0, 0, 0.30);
+  --mac-separator: rgba(0, 0, 0, 0.10);
+  --mac-border: rgba(0, 0, 0, 0.08);
+
+  /* Type scale (macOS points) */
+  --fs-large-title: 26px; --fs-title1: 22px; --fs-title2: 17px; --fs-title3: 15px;
+  --fs-headline: 13px; --fs-body: 13px; --fs-callout: 12px; --fs-subhead: 11px; --fs-caption: 10px;
+
+  /* Geometry */
+  --ctl-h: 26px; --ctl-h-lg: 30px; --ctl-radius: 7px;
+  --box-radius: 12px; --row-h: 30px; --sidebar-w: 224px; --toolbar-h: 52px;
+  --shadow-box: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-pop: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.18);
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sys-blue: #0a84ff; --sys-green: #32d74b; --sys-orange: #ff9f0a; --sys-red: #ff453a;
+    --sys-pink: #ff375f; --sys-purple: #bf5af2; --sys-indigo: #5e5ce6; --sys-teal: #6ac4dc;
+    --sys-yellow: #ffd60a; --sys-gray: #98989d;
+
+    --mac-window: #1e1e1e;
+    --mac-under: #161616;
+    --mac-box: #262628;
+    --mac-sidebar: rgba(44, 44, 46, 0.86);
+    --mac-toolbar: rgba(30, 30, 30, 0.82);
+    --mac-row-alt: #232325;
+    --mac-hover: rgba(255, 255, 255, 0.06);
+    --mac-selected: rgba(255, 255, 255, 0.10);
+    --mac-control: #3a3a3c;
+    --mac-control-border: rgba(255, 255, 255, 0.12);
+
+    --mac-label: rgba(255, 255, 255, 0.88);
+    --mac-label-2: rgba(255, 255, 255, 0.55);
+    --mac-label-3: rgba(255, 255, 255, 0.28);
+    --mac-separator: rgba(255, 255, 255, 0.10);
+    --mac-border: rgba(255, 255, 255, 0.08);
+
+    --shadow-box: 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+    --shadow-pop: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 12px 36px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Stage colors used across badges, dots, charts and the board */
+:root {
+  --stage-quote: var(--sys-gray); --stage-deposit: var(--sys-teal); --stage-shoot: var(--sys-blue);
+  --stage-cull: var(--sys-purple); --stage-edit: var(--sys-orange); --stage-review: var(--sys-pink);
+  --stage-delivered: var(--sys-green);
+}
+
+/* Tinted chips and badges derived from system colors, so they work in light and dark */
+.tone-blue { color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-blue) 15%, transparent); }
+.tone-green { color: color-mix(in srgb, var(--sys-green) 70%, var(--mac-label)); background: color-mix(in srgb, var(--sys-green) 16%, transparent); }
+.tone-orange { color: color-mix(in srgb, var(--sys-orange) 75%, var(--mac-label)); background: color-mix(in srgb, var(--sys-orange) 16%, transparent); }
+.tone-red { color: color-mix(in srgb, var(--sys-red) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-red) 14%, transparent); }
+.tone-pink { color: color-mix(in srgb, var(--sys-pink) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-pink) 14%, transparent); }
+.tone-purple { color: color-mix(in srgb, var(--sys-purple) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-purple) 14%, transparent); }
+.tone-gray { color: var(--mac-label-2); background: color-mix(in srgb, var(--sys-gray) 16%, transparent); }

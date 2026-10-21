@@ -139,12 +139,6 @@ button.stat:hover { box-shadow: 0 0 0 1px var(--sep); }
 /* ---------- tones ---------- */
 .badge { font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 8px; white-space: nowrap; }
 .chip-icon { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; }
-.tone-orange { color: #8f4700; background: #fff1e0; }
-.tone-pink { color: #99245a; background: #fce8f1; }
-.tone-purple { color: #5b35b0; background: #f0ebfc; }
-.tone-blue { color: #0050ba; background: #e6f0fd; }
-.tone-green { color: #1e6b34; background: #e6f4ea; }
-.tone-red { color: #b42318; background: #fdecea; }
 
 /* ---------- search, pills, segmented ---------- */
 .search { height: 38px; border-radius: 19px; background: var(--fill); display: flex; align-items: center; gap: 8px; padding: 0 12px; color: var(--muted); max-width: 520px; }
@@ -290,7 +284,6 @@ button.stat:hover { box-shadow: 0 0 0 1px var(--sep); }
 .chip-btn { white-space: nowrap; flex: none; height: 32px; padding: 0 12px; border-radius: 16px; background: var(--card); border: 0.5px solid var(--sep); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
 .chip-btn:hover { background: var(--fill); }
 .chip-btn.danger { color: var(--danger); }
-.tone-gray { color: #3c3c43; background: #ededf0; }
 @media (max-width: 760px) {
   .sheet-backdrop { padding: 0; place-items: end stretch; }
   .sheet { max-width: none; border-radius: 22px 22px 0 0; max-height: 92vh; }

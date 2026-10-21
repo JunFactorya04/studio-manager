@@ -1,7 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import "./theme/tokens.css";
 import "./styles.css";
+import "./theme/mac.css";
+import "./theme/widgets.css";
 import "./login.css";
 
 // macOS gets an overlay title bar, so the layout leaves room for the window buttons.

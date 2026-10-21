@@ -5,12 +5,12 @@ import { PROJECT_TYPES, STAGES, actions, addDays, today, useData, type Channel, 
 type Draft = Omit<Project, "id" | "createdAt">;
 
 // Create or edit a project. Lets the user pick an existing client or add a new one inline.
-export function ProjectForm({ project, onClose, onSaved }: { project?: Project; onClose: () => void; onSaved?: (id: string) => void }) {
+export function ProjectForm({ project, onClose, onSaved, initialDate }: { project?: Project; onClose: () => void; onSaved?: (id: string) => void; initialDate?: string }) {
   const d = useData();
   const [draft, setDraft] = useState<Draft>(
     project ?? {
-      name: "", clientId: d.clients[0]?.id ?? "", type: PROJECT_TYPES[0], date: addDays(today(), 7), time: "09:00", durationH: 2,
-      location: "", stage: "quote", deadline: addDays(today(), 21), pkgName: "", pkgPhotos: 30, photographers: "", nasPath: "", total: 0, note: "",
+      name: "", clientId: d.clients[0]?.id ?? "", type: PROJECT_TYPES[0], date: initialDate ?? addDays(today(), 7), time: "09:00", durationH: 2,
+      location: "", stage: "quote", deadline: addDays(initialDate ?? today(), 21), pkgName: "", pkgPhotos: 30, photographers: "", nasPath: "", total: 0, note: "",
     },
   );
   const [newClient, setNewClient] = useState(d.clients.length === 0);
