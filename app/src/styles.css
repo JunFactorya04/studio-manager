@@ -447,3 +447,17 @@ button.stat:hover { box-shadow: 0 0 0 1px var(--sep); }
   .inbox.has-open .chat { display: flex; position: static; height: calc(100vh - 230px); }
   .chat-back { display: grid; width: 36px; height: 36px; }
 }
+
+/* ---------- finance ---------- */
+.big-number { flex-wrap: wrap; }
+.bar-val { font-size: 11px; color: var(--muted); }
+.as-link { text-align: left; color: var(--text); }
+.icon-mini { width: 32px; height: 32px; border-radius: 16px; display: grid; place-items: center; color: var(--muted); flex: none; }
+.icon-mini:hover { background: var(--fill); color: var(--danger); }
+.cat-bars { display: flex; flex-direction: column; gap: 8px; }
+.cat-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 110px; align-items: center; gap: 12px; font-size: 14px; }
+.cat-row strong { text-align: right; }
+.section-head .section-title { margin: 8px 4px 0; }
+.stat-value.danger { color: var(--danger); }
+@media (max-width: 760px) { .cat-row { grid-template-columns: 100px minmax(0, 1fr) 90px; } }
+.page > .segmented { align-self: flex-start; }
