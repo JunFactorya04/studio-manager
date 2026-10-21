@@ -1,90 +1,98 @@
 import { useState } from "react";
 import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
-import { STAGES, projects, type Stage } from "../data";
+import { ProjectForm } from "../components/ProjectForm";
+import { STAGES, STAGE_TONE, clientOf, fmtDate, useData, type Stage } from "../store";
+import { coverOf, projectNote, stageIndex } from "../projectInfo";
 import type { Go } from "../nav";
 
-const FILTERS: { id: Stage | "all"; label: string }[] = [
-  { id: "all", label: "Tất cả" },
-  { id: "cull", label: "Chọn lọc" },
-  { id: "edit", label: "Chỉnh sửa" },
-  { id: "review", label: "Chờ khách" },
-  { id: "shoot", label: "Lịch chụp" },
-  { id: "delivered", label: "Đã giao" },
-];
+type Sort = "date" | "deadline" | "name";
 
 export function Projects({ go }: { go: Go }) {
-  const [filter, setFilter] = useState<Stage | "all">("all");
+  const d = useData();
+  const [filter, setFilter] = useState<Stage | "all" | "active">("active");
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<Sort>("date");
+  const [creating, setCreating] = useState(false);
 
-  const list = projects.filter(
-    (p) =>
-      (filter === "all" || p.stage === filter) &&
-      (q === "" || (p.name + " " + p.client).toLowerCase().includes(q.toLowerCase())),
-  );
+  const query = q.trim().toLowerCase();
+  const list = d.projects
+    .filter((p) => filter === "all" || (filter === "active" ? p.stage !== "delivered" : p.stage === filter))
+    .filter((p) => !query || [p.name, clientOf(d, p.clientId)?.name ?? "", p.type, p.location, fmtDate(p.date)].join(" ").toLowerCase().includes(query))
+    .sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name, "vi") : sort === "deadline" ? a.deadline.localeCompare(b.deadline) : b.date.localeCompare(a.date)));
+
+  const count = (f: typeof filter) => d.projects.filter((p) => f === "all" || (f === "active" ? p.stage !== "delivered" : p.stage === f)).length;
+  const filters: { id: typeof filter; label: string }[] = [
+    { id: "active", label: "Đang làm" },
+    ...STAGES.map((s) => ({ id: s.id as typeof filter, label: s.label })),
+    { id: "all", label: "Tất cả" },
+  ];
 
   return (
     <div className="page">
       <Header
         title="Dự án"
         actions={
-          <button className="icon-btn primary" aria-label="Tạo dự án">
+          <button className="icon-btn primary" aria-label="Tạo dự án" onClick={() => setCreating(true)}>
             <Icon name="plus" />
           </button>
         }
       />
 
-      <label className="search">
-        <Icon name="search" size={18} stroke={2} />
-        <span className="sr-only">Tìm dự án</span>
-        <input type="search" placeholder="Khách hàng, dự án, ngày chụp" value={q} onChange={(e) => setQ(e.target.value)} />
-      </label>
+      <div className="toolbar">
+        <label className="search" style={{ flex: 1 }}>
+          <Icon name="search" size={18} stroke={2} />
+          <span className="sr-only">Tìm dự án</span>
+          <input type="search" placeholder="Khách hàng, dự án, địa điểm, ngày" value={q} onChange={(e) => setQ(e.target.value)} />
+        </label>
+        <label className="sr-only" htmlFor="sort">Sắp xếp</label>
+        <select id="sort" className="select" style={{ width: "auto", height: 38, borderRadius: 19 }} value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+          <option value="date">Mới chụp trước</option>
+          <option value="deadline">Hạn gần nhất</option>
+          <option value="name">Tên A–Z</option>
+        </select>
+      </div>
 
       <div className="pills" role="tablist" aria-label="Lọc theo trạng thái">
-        {FILTERS.map((f) => {
-          const count = f.id === "all" ? projects.length : projects.filter((p) => p.stage === f.id).length;
-          return (
-            <button
-              key={f.id}
-              role="tab"
-              aria-selected={filter === f.id}
-              className={"pill" + (filter === f.id ? " on" : "")}
-              onClick={() => setFilter(f.id)}
-            >
-              {f.label} <span>{count}</span>
-            </button>
-          );
-        })}
+        {filters.map((f) => (
+          <button key={f.id} role="tab" aria-selected={filter === f.id} className={"pill" + (filter === f.id ? " on" : "")} onClick={() => setFilter(f.id)}>
+            {f.label} <span>{count(f.id)}</span>
+          </button>
+        ))}
       </div>
 
       <div className="project-grid">
         {list.map((p) => {
-          const idx = STAGES.findIndex((s) => s.id === p.stage);
+          const idx = stageIndex(p);
+          const note = projectNote(d, p);
           return (
             <button key={p.id} className="card project-card" onClick={() => go({ view: "projects", projectId: p.id })}>
-              <span className="thumb" style={{ background: p.cover }} />
+              <span className="thumb" style={{ background: coverOf(d, p) }} />
               <span className="project-main">
                 <span className="project-top">
                   <strong>{p.name}</strong>
-                  <span className={"badge tone-" + p.tone}>{p.statusLabel}</span>
+                  <span className={"badge tone-" + STAGE_TONE[p.stage]}>{STAGES[idx].label}</span>
                 </span>
-                <small className={p.noteTone === "danger" ? "danger" : ""}>
-                  {p.type} · {p.date} · {p.note}
-                </small>
+                <small>{clientOf(d, p.clientId)?.name ?? "—"} · {p.type} · {fmtDate(p.date)}</small>
+                <small className={note.danger ? "danger" : ""}>{note.text}</small>
                 <span className="steps" aria-label={`Bước ${idx + 1} trên ${STAGES.length}`}>
                   {STAGES.map((s, i) => (
-                    <span
-                      key={s.id}
-                      className={p.stage === "delivered" ? "done-all" : i < idx ? "done" : i === idx ? "now" : ""}
-                    />
+                    <span key={s.id} className={p.stage === "delivered" ? "done-all" : i < idx ? "done" : i === idx ? "now" : ""} />
                   ))}
                 </span>
               </span>
             </button>
           );
         })}
-        {list.length === 0 ? <p className="empty">Không có dự án nào khớp bộ lọc.</p> : null}
       </div>
+      {list.length === 0 ? (
+        <div className="empty-state">
+          <p>{d.projects.length === 0 ? "Chưa có dự án nào." : "Không có dự án nào khớp bộ lọc."}</p>
+          <button className="btn primary sm" onClick={() => setCreating(true)}><Icon name="plus" size={18} />Tạo dự án</button>
+        </div>
+      ) : null}
+
+      {creating ? <ProjectForm onClose={() => setCreating(false)} onSaved={(id) => go({ view: "projects", projectId: id })} /> : null}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { libraryTiles, nas } from "../data";
-import type { Go } from "../nav";
+import type { Go, Route } from "../nav";
 
 type Mark = "keep" | "reject" | "none";
 const START: Mark[] = ["keep", "keep", "reject", "none", "keep", "none", "reject", "keep", "none", "keep", "none", "none"];
@@ -13,7 +13,7 @@ const TABS: { id: Mark | "all"; label: string }[] = [
   { id: "none", label: "Chưa xem" },
 ];
 
-export function Library({ go }: { go: Go }) {
+export function Library({ go }: { go: Go; route?: Route }) {
   const [marks, setMarks] = useState<Mark[]>(START);
   const [tab, setTab] = useState<Mark | "all">("all");
   const pct = Math.round((nas.usedTB / nas.totalTB) * 100);

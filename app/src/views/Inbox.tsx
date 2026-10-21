@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { channelInfo, projects, threads, type Channel } from "../data";
-import type { Go } from "../nav";
+import type { Go, Route } from "../nav";
 
-export function Inbox({ go }: { go: Go }) {
+export function Inbox({ go }: { go: Go; route?: Route }) {
   const [ch, setCh] = useState<Channel | "all">("all");
   const list = threads.filter((t) => ch === "all" || t.channel === ch);
 
