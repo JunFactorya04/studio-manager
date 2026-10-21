@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tin nhắn</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#0060DF;text-decoration:none}a:hover{color:#004BB0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; background: #F2F2F7; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif; padding: 56px 0 0;">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 0 16px;">
+<h1 style="margin: 0; font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -0.4px;">Tin nhắn</h1>
+<button aria-label="Soạn tin mới" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #0060DF; box-shadow: 0 2px 8px rgba(0,96,223,0.25); display: flex; align-items: center; justify-content: center; color: #FFFFFF; padding: 0; margin-bottom: 2px;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></svg></button>
+</div>
+
+<label style="margin: 14px 16px 0; height: 40px; border-radius: 20px; background: rgba(118,118,128,0.12); display: flex; align-items: center; gap: 8px; padding: 0 12px; color: #6C6C70;">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Tìm tin nhắn</span>
+<input type="search" placeholder="Tên khách, nội dung tin nhắn" style="flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 17px; color: #000000; outline: none;">
+</label>
+
+<div style="display: flex; gap: 8px; padding: 14px 16px 6px; overflow: hidden;">
+<span style="flex: none; height: 34px; padding: 0 14px; border-radius: 17px; background: #000000; color: #FFFFFF; font-size: 14px; font-weight: 600; display: flex; align-items: center;">Tất cả</span>
+<span style="flex: none; height: 34px; padding: 0 14px; border-radius: 17px; background: #FFFFFF; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #06A045;"></span>LINE</span>
+<span style="flex: none; height: 34px; padding: 0 14px; border-radius: 17px; background: #FFFFFF; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #8E44D9;"></span>Messenger</span>
+<span style="flex: none; height: 34px; padding: 0 14px; border-radius: 17px; background: #FFFFFF; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #0068FF;"></span>Zalo</span>
+<span style="flex: none; height: 34px; padding: 0 14px; border-radius: 17px; background: #FFFFFF; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 4px; background: #8E8E93;"></span>Email</span>
+</div>
+
+<div style="margin: 8px 16px 0; background: #FFFFFF; border-radius: 20px; overflow: hidden;">
+<sc-for list="{{threads}}" as="c" hint-placeholder-count="6">
+<a href="ProjectDetail.dc.html" style="display: flex; gap: 12px; padding: 12px 14px; color: #000000; border-bottom: 0.5px solid #E5E5EA;">
+<div style="width: 46px; height: 46px; border-radius: 23px; background: {{c.avBg}}; color: {{c.avFg}}; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; flex: none; position: relative;">{{c.ini}}<span style="position: absolute; right: -2px; bottom: -2px; width: 16px; height: 16px; border-radius: 8px; background: {{c.chColor}}; border: 2px solid #FFFFFF; box-sizing: border-box;"></span></div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px;"><span style="font-size: 16px; font-weight: {{c.weight}};">{{c.name}}</span><span style="font-size: 13px; color: #6C6C70; flex: none;">{{c.time}}</span></div>
+<div style="display: flex; align-items: center; gap: 8px;"><span style="flex: 1; min-width: 0; font-size: 14px; color: {{c.msgColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{c.msg}}</span>
+<sc-if value="{{c.unread}}" hint-placeholder-val="{{false}}"><span style="width: 10px; height: 10px; border-radius: 5px; background: #0060DF; flex: none;"></span></sc-if>
+</div>
+<span style="align-self: flex-start; font-size: 12px; font-weight: 500; color: #3C3C43; background: #F2F2F7; padding: 2px 8px; border-radius: 6px;">{{c.project}}</span>
+</div>
+</a>
+</sc-for>
+</div>
+
+<nav aria-label="Điều hướng chính" style="position: absolute; left: 16px; right: 16px; bottom: 24px; height: 64px; border-radius: 32px; background: rgba(255,255,255,0.78); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border: 0.5px solid rgba(0,0,0,0.06); box-shadow: 0 8px 28px rgba(0,0,0,0.10); display: flex; align-items: center; justify-content: space-between; padding: 0 6px; box-sizing: border-box;">
+<a href="Main.dc.html" style="width: 66px; height: 52px; border-radius: 26px; color: #3C3C43; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 500;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Tổng quan</a>
+<a href="Projects.dc.html" style="width: 66px; height: 52px; border-radius: 26px; color: #3C3C43; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 500;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>Dự án</a>
+<a href="Library.dc.html" style="width: 66px; height: 52px; border-radius: 26px; color: #3C3C43; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 500;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>Thư viện</a>
+<a href="Inbox.dc.html" aria-current="page" style="width: 66px; height: 52px; border-radius: 26px; background: rgba(0,96,223,0.12); color: #0060DF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 600;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 4v-4A1.5 1.5 0 0 1 4 14.5z"/></svg>Tin nhắn</a>
+<a href="Finance.dc.html" style="width: 66px; height: 52px; border-radius: 26px; color: #3C3C43; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 500;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-8M12 20V5M19 20v-5"/></svg>Tài chính</a>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const ch = { line: '#06A045', fb: '#8E44D9', zalo: '#0068FF', mail: '#8E8E93' };
+const raw = [
+{ ini: 'TL', name: 'Trần Lan', ch: 'line', time: '10:32', msg: 'Bên mình có thể thêm 10 ảnh vào gói không ạ?', project: 'Lan & Minh', unread: true, avBg: '#FCE8F1', avFg: '#99245A' },
+{ ini: 'AB', name: 'Cty ABC – Chị Hằng', ch: 'mail', time: '09:15', msg: 'Đã chọn xong 86 ảnh, nhờ studio xuất bản in', project: 'Hội thảo ABC', unread: true, avBg: '#E6F0FD', avFg: '#0050BA' },
+{ ini: 'MỘ', name: 'Mộc Furniture', ch: 'fb', time: 'Hôm qua', msg: 'Lịch chụp chiều nay vẫn giữ nhé', project: 'Chụp sản phẩm Mộc', unread: true, avBg: '#F0EBFC', avFg: '#5B35B0' },
+{ ini: 'TH', name: 'Gia đình Trần Hùng', ch: 'zalo', time: 'Hôm qua', msg: 'Cảm ơn studio, hẹn 9 giờ 30 ở công viên', project: 'Gia đình Trần', unread: true, avBg: '#E6F4EA', avFg: '#1E6B34' },
+{ ini: 'MĐ', name: 'THPT Minh Đức', ch: 'mail', time: 'T2', msg: 'Bạn: Gửi lại hóa đơn số 0042 để thầy kiểm tra', project: 'Kỷ yếu THPT Minh Đức', unread: false, avBg: '#FFF1E0', avFg: '#8F4700' },
+{ ini: 'NV', name: 'Nguyễn Vy', ch: 'line', time: 'CN', msg: 'Bạn: Đã gửi báo giá gói chụp gia đình', project: 'Báo giá mới', unread: false, avBg: '#EDEDF0', avFg: '#3C3C43' }
+];
+const threads = raw.map((c) => ({
+...c,
+chColor: ch[c.ch],
+weight: c.unread ? 700 : 500,
+msgColor: c.unread ? '#1C1C1E' : '#6C6C70'
+}));
+return { threads: threads, false: false };
+}
+}
+</script>
+</body>
+</html>

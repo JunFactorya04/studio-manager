@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Nhập ảnh</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#0060DF;text-decoration:none}a:hover{color:#004BB0}
+.sw{appearance:none;-webkit-appearance:none;width:51px;height:31px;border-radius:16px;background:#E5E5EA;position:relative;margin:0;flex:none;cursor:pointer}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:14px;background:#FFFFFF;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
+.sw:checked{background:#34C759}
+.sw:checked::after{left:22px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; background: #8A8A8E; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;">
+<div style="position: absolute; left: 12px; right: 12px; top: 40px; height: 40px; border-radius: 24px 24px 0 0; background: #B9B9BE;"></div>
+<div role="dialog" aria-label="Nhập ảnh từ thẻ nhớ" style="position: absolute; left: 0; right: 0; top: 54px; bottom: 0; border-radius: 28px 28px 0 0; background: #F2F2F7; padding: 8px 16px 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px;">
+<div style="width: 36px; height: 5px; border-radius: 3px; background: #C7C7CC; align-self: center;"></div>
+<div style="display: flex; align-items: center; justify-content: space-between;">
+<a href="Main.dc.html" style="height: 40px; padding: 0 14px; border-radius: 20px; background: rgba(118,118,128,0.12); color: #000000; font-size: 16px; font-weight: 500; display: flex; align-items: center;">Hủy</a>
+<h1 style="margin: 0; font-size: 17px; font-weight: 600;">Nhập ảnh</h1>
+<a href="Library.dc.html" style="height: 40px; padding: 0 16px; border-radius: 20px; background: #0060DF; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center;">Nhập</a>
+</div>
+
+<section aria-label="Nguồn" style="background: #FFFFFF; border-radius: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 14px;">
+<div style="width: 48px; height: 48px; border-radius: 12px; background: #E6F0FD; color: #0060DF; display: flex; align-items: center; justify-content: center; flex: none;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM10 3v4M13 3v4"/></svg></div>
+<div style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 600;">Thẻ SD · Canon EOS R6</span><span style="font-size: 13px; color: #6C6C70;">412 tệp · 206 cặp RAW + JPG · 61 GB</span></div>
+</section>
+
+<section aria-label="Đích" style="background: #FFFFFF; border-radius: 20px; overflow: hidden;">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; font-size: 16px; border-bottom: 0.5px solid #E5E5EA;"><span style="color: #6C6C70;">Dự án</span><span style="display: flex; align-items: center; gap: 4px;">Chụp sản phẩm Mộc<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#AEAEB2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg></span></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; gap: 12px;"><span style="font-size: 16px; color: #6C6C70;">Lưu vào</span><span style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; text-align: right;">NAS/2026/10-21_Moc</span></div>
+</section>
+
+<section aria-label="Quy tắc nhập" style="background: #FFFFFF; border-radius: 20px; overflow: hidden;">
+<label style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 0.5px solid #E5E5EA;"><span style="flex: 1; display: flex; flex-direction: column; gap: 1px;"><span style="font-size: 16px;">Ghép cặp RAW + JPG</span><span style="font-size: 12px; color: #6C6C70;">Chọn hoặc xóa một tấm áp cho cả hai tệp</span></span><input type="checkbox" class="sw" checked></label>
+<label style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 0.5px solid #E5E5EA;"><span style="flex: 1; display: flex; flex-direction: column; gap: 1px;"><span style="font-size: 16px;">Đặt tên theo mẫu</span><span style="font-size: 12px; color: #6C6C70; font-family: ui-monospace, 'SF Mono', Menlo, monospace;">2026-10-21_Moc_0001</span></span><input type="checkbox" class="sw" checked></label>
+<label style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 0.5px solid #E5E5EA;"><span style="flex: 1; font-size: 16px;">Bỏ qua ảnh trùng</span><input type="checkbox" class="sw" checked></label>
+<label style="display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 0.5px solid #E5E5EA;"><span style="flex: 1; display: flex; flex-direction: column; gap: 1px;"><span style="font-size: 16px;">Tạo preview có watermark</span><span style="font-size: 12px; color: #6C6C70;">Đẩy lên cloud để khách xem</span></span><input type="checkbox" class="sw" checked></label>
+<label style="display: flex; align-items: center; gap: 12px; padding: 10px 16px;"><span style="flex: 1; display: flex; flex-direction: column; gap: 1px;"><span style="font-size: 16px;">Kiểm tra checksum</span><span style="font-size: 12px; color: #6C6C70;">Chỉ báo an toàn xóa thẻ khi khớp 100%</span></span><input type="checkbox" class="sw" checked></label>
+</section>
+
+<section aria-label="Tiến trình" style="background: #FFFFFF; border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; justify-content: space-between; font-size: 15px;"><span style="font-weight: 600;">Đang sao chép 186 / 412</span><span style="color: #6C6C70;">còn khoảng 4 phút</span></div>
+<div style="height: 8px; border-radius: 4px; background: #E5E5EA; overflow: hidden;"><div style="width: 45%; height: 8px; background: #0060DF;"></div></div>
+<div style="display: flex; gap: 16px; font-size: 13px; color: #3C3C43;"><span>Sao chép 45%</span><span>Kiểm tra 40%</span><span>Preview 12%</span></div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
