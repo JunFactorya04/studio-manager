@@ -1,6 +1,8 @@
 // Reads a GPX file in the browser: distance, climb and a small set of points for drawing the route.
 export interface RoutePoint { lat: number; lon: number; ele?: number }
-export interface ParsedGpx { name: string; points: RoutePoint[]; distanceKm: number; ascentM: number; descentM: number; rawPoints: number }
+export interface ParsedGpx { name: string; points: RoutePoint[]; distanceKm: number; ascentM: number; descentM: number; rawPoints: number; waypoints: Waypoint[] }
+
+export interface Waypoint { name: string; lat: number; lon: number; ele?: number; desc?: string }
 
 const R = 6371000;
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -23,7 +25,16 @@ export function parseGpx(text: string, fallbackName = "Lộ trình", maxPoints =
     const e = parseFloat(n.getElementsByTagName("ele")[0]?.textContent ?? "");
     pts.push({ lat, lon, ele: Number.isFinite(e) ? e : undefined });
   }
-  if (pts.length < 2) throw new Error("GPX không có đủ điểm đường đi (cần ít nhất 2).");
+  // Checkpoints (<wpt>) mark the spots along the course; they are read even when the file has no track.
+  const waypoints: Waypoint[] = [];
+  for (const n of [...doc.getElementsByTagName("wpt")]) {
+    const lat = parseFloat(n.getAttribute("lat") ?? ""), lon = parseFloat(n.getAttribute("lon") ?? "");
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    const kid = (t: string) => [...n.children].find((c) => c.localName === t)?.textContent?.trim();
+    waypoints.push({ name: kid("name") || `Điểm ${waypoints.length + 1}`, lat: +lat.toFixed(5), lon: +lon.toFixed(5), desc: kid("desc") || kid("cmt") || undefined });
+  }
+  if (pts.length < 2 && !waypoints.length) throw new Error("GPX không có đủ điểm đường đi (cần ít nhất 2).");
+  if (pts.length < 2) return { name: fallbackName, points: [], distanceKm: 0, ascentM: 0, descentM: 0, rawPoints: pts.length, waypoints };
 
   let dist = 0, up = 0, down = 0;
   // Ignore elevation changes under 3 m so GPS noise does not inflate the climb.
@@ -38,7 +49,7 @@ export function parseGpx(text: string, fallbackName = "Lộ trình", maxPoints =
   const step = Math.max(1, Math.ceil(pts.length / maxPoints));
   const small = pts.filter((_, i) => i % step === 0);
   if (small[small.length - 1] !== pts[pts.length - 1]) small.push(pts[pts.length - 1]);
-  return { name, points: small.map((p) => ({ lat: +p.lat.toFixed(5), lon: +p.lon.toFixed(5), ele: p.ele === undefined ? undefined : Math.round(p.ele) })), distanceKm: dist / 1000, ascentM: Math.round(up), descentM: Math.round(down), rawPoints: pts.length };
+  return { name, points: small.map((p) => ({ lat: +p.lat.toFixed(5), lon: +p.lon.toFixed(5), ele: p.ele === undefined ? undefined : Math.round(p.ele) })), distanceKm: dist / 1000, ascentM: Math.round(up), descentM: Math.round(down), rawPoints: pts.length, waypoints };
 }
 
 const xml = (s: string) => s.replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]!));

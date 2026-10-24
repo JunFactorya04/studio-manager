@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Field, Sheet } from "./Sheet";
 import { briefHtml } from "../briefPage";
-import { emptyBrief, opsActions, ROUTE_KIND, useOps, type Brief, type OpsEvent, type RouteKind } from "../opsStore";
+import { emptyBrief, getOps, opsActions, ROUTE_KIND, useOps, type Brief, type OpsEvent, type RouteKind } from "../opsStore";
 import { parseGpx } from "../gpx";
 import { Icon } from "./Icon";
 import { uid } from "../store";
@@ -34,8 +34,19 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
         const g = parseGpx(await f.text(), f.name.replace(/\.gpx$/i, ""));
         const lower = (g.name + " " + f.name).toLowerCase();
         const kind: RouteKind = /bike|cycl|ride|đạp|xe/.test(lower) ? "bike" : /run|chạy/.test(lower) ? "run" : /swim|bơi/.test(lower) ? "swim" : "other";
-        setB((x) => ({ ...x, routes: [...x.routes, { id: uid(), name: g.name, kind, distanceKm: g.distanceKm, ascentM: g.ascentM, descentM: g.descentM, points: g.points }] }));
-        setMsg(`Đã đọc ${f.name}: ${g.distanceKm.toFixed(1)} km, ${g.rawPoints.toLocaleString("vi-VN")} điểm.`);
+        if (g.points.length) setB((x) => ({ ...x, routes: [...x.routes, { id: uid(), name: g.name, kind, distanceKm: g.distanceKm, ascentM: g.ascentM, descentM: g.descentM, points: g.points }] }));
+        // Checkpoints become shooting spots (skipping names this event already has).
+        const have = new Set(getOps().spots.filter((s) => s.eventId === event.id).map((s) => s.name.trim().toLowerCase()));
+        let added = 0;
+        for (const w of g.waypoints) {
+          if (have.has(w.name.toLowerCase())) continue;
+          have.add(w.name.toLowerCase());
+          opsActions.addSpot({ eventId: event.id, name: w.name, captureDir: "", outputDir: "", c1Session: "", recipe: "", photographerId: "", status: "idle", lat: w.lat, lon: w.lon, tip: w.desc });
+          added++;
+        }
+        const parts = [g.points.length ? `${g.distanceKm.toFixed(1)} km, ${g.rawPoints.toLocaleString("vi-VN")} điểm` : "không có đường đi"];
+        if (g.waypoints.length) parts.push(`${g.waypoints.length} checkpoint, thêm ${added} điểm chụp mới`);
+        setMsg(`Đã đọc ${f.name}: ${parts.join(", ")}.`);
       } catch (e) { setMsg(`${f.name}: ${(e as Error).message}`); }
     }
   };
@@ -103,7 +114,7 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
             </div>
           ))}
           <label className="btn tinted file-btn"><Icon name="upload" size={15} />Thêm GPX…<input type="file" accept=".gpx,application/gpx+xml,text/xml" multiple hidden onChange={(e) => { addGpx(e.target.files); e.target.value = ""; }} /></label>
-          <small className="f-hint">App đọc quãng đường, độ cao và vẽ sơ đồ. Tệp lớn được rút gọn còn tối đa 400 điểm.</small>
+          <small className="f-hint">App đọc quãng đường, độ cao và vẽ sơ đồ. Tệp vài MB vẫn đọc được (rút gọn còn tối đa 400 điểm). Checkpoint trong tệp sẽ thành điểm chụp có tọa độ.</small>
         </div>
         <div className="f-field">
           <span className="f-label">Tệp đính kèm (PDF, ảnh)</span>
