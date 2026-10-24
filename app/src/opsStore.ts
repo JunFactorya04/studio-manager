@@ -36,7 +36,7 @@ export interface OpsEvent { id: string; name: string; date: string; endDate: str
 export interface Spot {
   id: string; eventId: string; name: string; captureDir: string; outputDir: string;
   c1Session: string; recipe: string; photographerId: string; status: SpotStatus;
-  arrival?: string; lens?: string; mapsUrl?: string; tip?: string; lat?: number; lon?: number; // briefing: where and when the photographer should be
+  arrival?: string; lens?: string; mapsUrl?: string; tip?: string; lat?: number; lon?: number; phase?: SpotPhase; // briefing: where and when the photographer should be
 }
 export interface Photographer { id: string; name: string; phone: string; email: string; note: string }
 export interface Job {
@@ -58,6 +58,8 @@ export interface OpsData {
 }
 
 export const EVENT_STATUS: Record<EventStatus, [string, string]> = { draft: ["Nháp", "gray"], live: ["Đang diễn ra", "green"], done: ["Đã kết thúc", "blue"] };
+export type SpotPhase = "swim" | "transition" | "bike" | "run" | "finish" | "other";
+export const PHASE: Record<SpotPhase, string> = { swim: "Bơi", transition: "Chuyển tiếp", bike: "Đạp xe", run: "Chạy bộ", finish: "Về đích", other: "Khác" };
 export const SPOT_STATUS: Record<SpotStatus, [string, string]> = { active: ["Đang chụp", "green"], idle: ["Chờ", "gray"], error: ["Lỗi", "red"] };
 export const JOB_STATUS: Record<JobStatus, [string, string]> = { pending: ["Chờ", "gray"], running: ["Đang chạy", "blue"], succeeded: ["Thành công", "green"], failed: ["Lỗi", "red"], paused: ["Tạm dừng", "orange"] };
 export const DELIVERY_STATUS: Record<DeliveryStatus, [string, string]> = { pending: ["Chờ gửi", "gray"], uploading: ["Đang gửi", "blue"], done: ["Đã gửi", "green"], failed: ["Lỗi", "red"] };

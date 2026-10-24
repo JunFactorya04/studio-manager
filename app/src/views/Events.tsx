@@ -6,8 +6,8 @@ import { BriefSheet } from "../components/BriefSheet";
 import { fmtDate, today } from "../store";
 import { pickFolder, isDesktop } from "../native";
 import {
-  EVENT_STATUS, SPOT_STATUS, opsActions, spotStats, useOps,
-  type EventStatus, type OpsEvent, type Spot, type SpotStatus,
+  EVENT_STATUS, PHASE, SPOT_STATUS, opsActions, spotStats, useOps,
+  type EventStatus, type OpsEvent, type Spot, type SpotPhase, type SpotStatus,
 } from "../opsStore";
 import type { Go, Route } from "../nav";
 
@@ -152,20 +152,20 @@ function EventForm({ event, onClose, onSaved }: { event?: OpsEvent; onClose: () 
 
 function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; onClose: () => void }) {
   const o = useOps();
-  const [f, setF] = useState({ name: spot?.name ?? "", captureDir: spot?.captureDir ?? "", outputDir: spot?.outputDir ?? "", c1Session: spot?.c1Session ?? "", recipe: spot?.recipe ?? "JPEG 2400px", photographerId: spot?.photographerId ?? "", status: (spot?.status ?? "idle") as SpotStatus, arrival: spot?.arrival ?? "", lens: spot?.lens ?? "", mapsUrl: spot?.mapsUrl ?? "", tip: spot?.tip ?? "", coords: spot?.lat !== undefined && spot?.lon !== undefined ? `${spot.lat}, ${spot.lon}` : "" });
+  const [f, setF] = useState({ name: spot?.name ?? "", captureDir: spot?.captureDir ?? "", outputDir: spot?.outputDir ?? "", c1Session: spot?.c1Session ?? "", recipe: spot?.recipe ?? "JPEG 2400px", photographerId: spot?.photographerId ?? "", status: (spot?.status ?? "idle") as SpotStatus, arrival: spot?.arrival ?? "", lens: spot?.lens ?? "", mapsUrl: spot?.mapsUrl ?? "", tip: spot?.tip ?? "", phase: (spot?.phase ?? "") as SpotPhase | "", coords: spot?.lat !== undefined && spot?.lon !== undefined ? `${spot.lat}, ${spot.lon}` : "" });
   const [err, setErr] = useState("");
   const browse = async (key: "captureDir" | "outputDir") => { const p = await pickFolder(key === "captureDir" ? "Thư mục nhận ảnh của điểm chụp" : "Thư mục ảnh đã xuất"); if (p) setF((x) => ({ ...x, [key]: p })); };
   const save = () => {
     if (!f.name.trim()) return setErr("Nhập tên điểm chụp.");
-    const { coords, ...rest } = f;
+    const { coords, phase, ...rest } = f;
     let lat: number | undefined, lon: number | undefined;
     if (coords.trim()) {
       const m = coords.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
       if (!m || Math.abs(+m[1]) > 90 || Math.abs(+m[2]) > 180) return setErr("Tọa độ dạng: 25.1700, 121.4400");
       lat = +m[1]; lon = +m[2];
     }
-    if (spot) opsActions.updateSpot(spot.id, { ...rest, lat, lon, name: f.name.trim() });
-    else opsActions.addSpot({ ...rest, lat, lon, name: f.name.trim(), eventId });
+    if (spot) opsActions.updateSpot(spot.id, { ...rest, lat, lon, phase: phase || undefined, name: f.name.trim() });
+    else opsActions.addSpot({ ...rest, lat, lon, phase: phase || undefined, name: f.name.trim(), eventId });
     onClose();
   };
   const dirField = (label: string, key: "captureDir" | "outputDir") => (
@@ -199,6 +199,12 @@ function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; on
         </Field>
       </div>
       <div className="f-row">
+        <Field label="Chặng (tô màu trên trang briefing)">
+          <select className="select" value={f.phase} onChange={(e) => setF({ ...f, phase: e.target.value as SpotPhase | "" })}>
+            <option value="">Tự đoán theo tên</option>
+            {(Object.keys(PHASE) as SpotPhase[]).map((p) => <option key={p} value={p}>{PHASE[p]}</option>)}
+          </select>
+        </Field>
         <Field label="Giờ đến"><input className="input" value={f.arrival} onChange={(e) => setF({ ...f, arrival: e.target.value })} placeholder="05:30" /></Field>
         <Field label="Ống kính"><input className="input" value={f.lens} onChange={(e) => setF({ ...f, lens: e.target.value })} placeholder="24-70 / 70-200" /></Field>
       </div>
