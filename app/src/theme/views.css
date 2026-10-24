@@ -212,3 +212,6 @@
   .search { min-height: 44px; }
 }
 @media (max-width: 760px) { .segmented { height: auto; } }
+
+/* Ghost buttons ("Hủy") matched the old iOS height; on desktop they share the 26px control height. */
+@media (min-width: 761px) { .btn.ghost { height: var(--ctl-h); padding: 0 12px; } }

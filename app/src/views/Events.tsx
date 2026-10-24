@@ -152,13 +152,20 @@ function EventForm({ event, onClose, onSaved }: { event?: OpsEvent; onClose: () 
 
 function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; onClose: () => void }) {
   const o = useOps();
-  const [f, setF] = useState({ name: spot?.name ?? "", captureDir: spot?.captureDir ?? "", outputDir: spot?.outputDir ?? "", c1Session: spot?.c1Session ?? "", recipe: spot?.recipe ?? "JPEG 2400px", photographerId: spot?.photographerId ?? "", status: (spot?.status ?? "idle") as SpotStatus, arrival: spot?.arrival ?? "", lens: spot?.lens ?? "", mapsUrl: spot?.mapsUrl ?? "", tip: spot?.tip ?? "" });
+  const [f, setF] = useState({ name: spot?.name ?? "", captureDir: spot?.captureDir ?? "", outputDir: spot?.outputDir ?? "", c1Session: spot?.c1Session ?? "", recipe: spot?.recipe ?? "JPEG 2400px", photographerId: spot?.photographerId ?? "", status: (spot?.status ?? "idle") as SpotStatus, arrival: spot?.arrival ?? "", lens: spot?.lens ?? "", mapsUrl: spot?.mapsUrl ?? "", tip: spot?.tip ?? "", coords: spot?.lat !== undefined && spot?.lon !== undefined ? `${spot.lat}, ${spot.lon}` : "" });
   const [err, setErr] = useState("");
   const browse = async (key: "captureDir" | "outputDir") => { const p = await pickFolder(key === "captureDir" ? "Thư mục nhận ảnh của điểm chụp" : "Thư mục ảnh đã xuất"); if (p) setF((x) => ({ ...x, [key]: p })); };
   const save = () => {
     if (!f.name.trim()) return setErr("Nhập tên điểm chụp.");
-    if (spot) opsActions.updateSpot(spot.id, { ...f, name: f.name.trim() });
-    else opsActions.addSpot({ ...f, name: f.name.trim(), eventId });
+    const { coords, ...rest } = f;
+    let lat: number | undefined, lon: number | undefined;
+    if (coords.trim()) {
+      const m = coords.match(/^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/);
+      if (!m || Math.abs(+m[1]) > 90 || Math.abs(+m[2]) > 180) return setErr("Tọa độ dạng: 25.1700, 121.4400");
+      lat = +m[1]; lon = +m[2];
+    }
+    if (spot) opsActions.updateSpot(spot.id, { ...rest, lat, lon, name: f.name.trim() });
+    else opsActions.addSpot({ ...rest, lat, lon, name: f.name.trim(), eventId });
     onClose();
   };
   const dirField = (label: string, key: "captureDir" | "outputDir") => (
@@ -195,6 +202,7 @@ function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; on
         <Field label="Giờ đến"><input className="input" value={f.arrival} onChange={(e) => setF({ ...f, arrival: e.target.value })} placeholder="05:30" /></Field>
         <Field label="Ống kính"><input className="input" value={f.lens} onChange={(e) => setF({ ...f, lens: e.target.value })} placeholder="24-70 / 70-200" /></Field>
       </div>
+      <Field label="Tọa độ (vĩ độ, kinh độ) để đánh dấu trên sơ đồ"><input className="input" value={f.coords} onChange={(e) => { setF({ ...f, coords: e.target.value }); setErr(""); }} placeholder="25.1700, 121.4400" /></Field>
       <Field label="Liên kết bản đồ điểm chụp"><input className="input" value={f.mapsUrl} onChange={(e) => setF({ ...f, mapsUrl: e.target.value })} placeholder="https://maps.google.com/..." /></Field>
       <Field label="Ghi chú cho photographer"><input className="input" value={f.tip} onChange={(e) => setF({ ...f, tip: e.target.value })} /></Field>
     </Sheet>

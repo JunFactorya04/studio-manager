@@ -10,25 +10,32 @@ export type JobStatus = "pending" | "running" | "succeeded" | "failed" | "paused
 export type DeliveryStatus = "pending" | "uploading" | "done" | "failed";
 export type LogKind = "ingest" | "process" | "export" | "upload" | "error" | "retry" | "config";
 
+export type RouteKind = "bike" | "run" | "swim" | "other";
+export interface RouteInfo {
+  id: string; name: string; kind: RouteKind; distanceKm: number; ascentM: number; descentM: number;
+  points: { lat: number; lon: number; ele?: number }[];
+}
+export const ROUTE_KIND: Record<RouteKind, string> = { bike: "Đạp xe", run: "Chạy bộ", swim: "Bơi", other: "Khác" };
 export interface Brief {
   teamLeader: string; startTime: string; endTime: string; participants: string;
   notes: string[]; welcome: string; guidance: string[];
   venueName: string; venueAddress: string; venueMaps: string;
   course: { label: string; value: string }[];
-  files: { name: string; url: string }[];
+  files: { name: string; url: string; data?: string; size?: number }[]; // data = attached file as a data: URL
+  routes: RouteInfo[];
   hotel: { name: string; address: string; phone: string; maps: string; checkIn: string; checkOut: string; booking: string };
   rooms: { room: string; people: string }[];
 }
 export const emptyBrief = (): Brief => ({
   teamLeader: "", startTime: "", endTime: "", participants: "", notes: [], welcome: "", guidance: [],
-  venueName: "", venueAddress: "", venueMaps: "", course: [], files: [],
+  venueName: "", venueAddress: "", venueMaps: "", course: [], files: [], routes: [],
   hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [],
 });
 export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string; brief?: Brief }
 export interface Spot {
   id: string; eventId: string; name: string; captureDir: string; outputDir: string;
   c1Session: string; recipe: string; photographerId: string; status: SpotStatus;
-  arrival?: string; lens?: string; mapsUrl?: string; tip?: string; // briefing: where and when the photographer should be
+  arrival?: string; lens?: string; mapsUrl?: string; tip?: string; lat?: number; lon?: number; // briefing: where and when the photographer should be
 }
 export interface Photographer { id: string; name: string; phone: string; email: string; note: string }
 export interface Job {
@@ -54,6 +61,20 @@ export const SPOT_STATUS: Record<SpotStatus, [string, string]> = { active: ["Đa
 export const JOB_STATUS: Record<JobStatus, [string, string]> = { pending: ["Chờ", "gray"], running: ["Đang chạy", "blue"], succeeded: ["Thành công", "green"], failed: ["Lỗi", "red"], paused: ["Tạm dừng", "orange"] };
 export const DELIVERY_STATUS: Record<DeliveryStatus, [string, string]> = { pending: ["Chờ gửi", "gray"], uploading: ["Đang gửi", "blue"], done: ["Đã gửi", "green"], failed: ["Lỗi", "red"] };
 
+// A made-up 10 km loop so the briefing page has something to draw before a real GPX is attached.
+function sampleRoute(): RouteInfo {
+  const pts = Array.from({ length: 90 }, (_, i) => {
+    const a = (i / 89) * Math.PI * 2;
+    return { lat: +(25.172 + 0.016 * Math.sin(a) + 0.003 * Math.sin(a * 3)).toFixed(5), lon: +(121.435 + 0.022 * Math.cos(a)).toFixed(5), ele: Math.round(8 + 14 * (1 + Math.sin(a * 2)) / 2) };
+  });
+  let km = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dLat = ((pts[i].lat - pts[i - 1].lat) * Math.PI) / 180, dLon = ((pts[i].lon - pts[i - 1].lon) * Math.PI) / 180;
+    km += 6371 * Math.sqrt(dLat ** 2 + (Math.cos((pts[i].lat * Math.PI) / 180) * dLon) ** 2);
+  }
+  return { id: "r-sample", name: "Đường chạy 10 km (mẫu)", kind: "run", distanceKm: +km.toFixed(1), ascentM: 28, descentM: 28, points: pts };
+}
+
 const at = (daysAgo: number, h: number, m: number) => `${addDays(today(), -daysAgo)}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
 
 function seed(): OpsData {
@@ -73,7 +94,7 @@ function seed(): OpsData {
         guidance: ["Thẻ nhớ đọc nhanh trên 95 MB/s và đầu đọc thẻ dự phòng", "Mang 3–4 pin sạc đầy mỗi ngày, ít điểm có ổ điện", "Mang áo khoác, túi nhựa che máy, nước và đồ ăn nhẹ"],
         venueName: "Công viên bờ sông Đạm Thủy", venueAddress: "Đường Trung Chính, Đạm Thủy, Tân Bắc", venueMaps: "https://maps.google.com/?q=Tamsui+Riverside",
         course: [{ label: "Cự ly", value: "10 km" }, { label: "Số vòng", value: "1" }],
-        files: [{ name: "Lộ trình (GPX)", url: "https://example.com/course.gpx" }, { name: "Sơ đồ điểm chụp (PDF)", url: "https://example.com/spots.pdf" }],
+        files: [], routes: [sampleRoute()],
         hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [],
       },
     },
@@ -81,9 +102,9 @@ function seed(): OpsData {
     { id: "ev3", name: "Triển lãm Công nghệ", date: addDays(t, 12), endDate: addDays(t, 14), venue: "Trung tâm Triển lãm", status: "draft", note: "Chưa gán điểm chụp" },
   ];
   const spots: Spot[] = [
-    { id: "sp1", eventId: "ev1", name: "Vạch xuất phát", captureDir: "D:\\Capture\\DamThuy\\Start", outputDir: "D:\\Output\\DamThuy\\Start", c1Session: "DamThuy_Start.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph1", status: "active", arrival: "05:00", lens: "24-70 / 70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Start", tip: "Chụp từ phía sau vạch" },
-    { id: "sp2", eventId: "ev1", name: "Cầu Tình Yêu", captureDir: "D:\\Capture\\DamThuy\\Bridge", outputDir: "D:\\Output\\DamThuy\\Bridge", c1Session: "DamThuy_Bridge.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph2", status: "active", arrival: "06:30", lens: "70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Bridge", tip: "Ưu tiên ảnh nhóm" },
-    { id: "sp3", eventId: "ev1", name: "Vạch đích", captureDir: "D:\\Capture\\DamThuy\\Finish", outputDir: "D:\\Output\\DamThuy\\Finish", c1Session: "DamThuy_Finish.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph3", status: "error", arrival: "07:00", lens: "16-35", mapsUrl: "https://maps.google.com/?q=Tamsui+Finish", tip: "Khóa 20 ảnh về đích" },
+    { id: "sp1", eventId: "ev1", name: "Vạch xuất phát", captureDir: "D:\\Capture\\DamThuy\\Start", outputDir: "D:\\Output\\DamThuy\\Start", c1Session: "DamThuy_Start.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph1", status: "active", arrival: "05:00", lens: "24-70 / 70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Start", tip: "Chụp từ phía sau vạch", lat: 25.172, lon: 121.457 },
+    { id: "sp2", eventId: "ev1", name: "Cầu Tình Yêu", captureDir: "D:\\Capture\\DamThuy\\Bridge", outputDir: "D:\\Output\\DamThuy\\Bridge", c1Session: "DamThuy_Bridge.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph2", status: "active", arrival: "06:30", lens: "70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Bridge", tip: "Ưu tiên ảnh nhóm", lat: 25.188, lon: 121.435 },
+    { id: "sp3", eventId: "ev1", name: "Vạch đích", captureDir: "D:\\Capture\\DamThuy\\Finish", outputDir: "D:\\Output\\DamThuy\\Finish", c1Session: "DamThuy_Finish.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph3", status: "error", arrival: "07:00", lens: "16-35", mapsUrl: "https://maps.google.com/?q=Tamsui+Finish", tip: "Khóa 20 ảnh về đích", lat: 25.156, lon: 121.435 },
     { id: "sp4", eventId: "ev2", name: "Sân chính", captureDir: "D:\\Capture\\MinhDuc\\Main", outputDir: "D:\\Output\\MinhDuc\\Main", c1Session: "MinhDuc_Main.cosessiondb", recipe: "JPEG 2000px", photographerId: "ph1", status: "idle" },
   ];
 

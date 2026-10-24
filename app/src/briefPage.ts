@@ -1,12 +1,46 @@
 // Builds the public event briefing page a photographer opens on their phone before the shoot.
 // The output is one self-contained HTML file (no external requests), so it can be previewed in the app,
 // downloaded, or hosted anywhere, e.g. as /e/<eventId>/ on Vercel.
-import type { OpsEvent, Photographer, Spot } from "./opsStore";
+import { ROUTE_KIND, type OpsEvent, type Photographer, type RouteInfo, type Spot } from "./opsStore";
+import { toGpx } from "./gpx";
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 // Only http(s) links are allowed through; anything else (javascript:, data:) is dropped.
 const safeUrl = (u: string) => (/^https?:\/\//i.test(u.trim()) ? esc(u.trim()) : "");
 const link = (url: string, text: string) => (safeUrl(url) ? `<a href="${safeUrl(url)}" target="_blank" rel="noopener">${esc(text)}</a>` : "");
+// Attached files travel inside the page as data: URLs. Only these types are accepted; anything else is dropped.
+const DATA_OK = /^data:(application\/pdf|image\/(png|jpeg|webp|gif)|application\/gpx\+xml);base64,[A-Za-z0-9+/=]+$/;
+const b64 = (s: string) => btoa(unescape(encodeURIComponent(s)));
+
+// Route drawing: equirectangular projection (longitude scaled by cos latitude), start/finish marks and numbered camera spots.
+function routeSvg(r: RouteInfo, spots: Spot[]): string {
+  const pts = r.points;
+  if (pts.length < 2) return "";
+  const lat0 = pts.reduce((a, p) => a + p.lat, 0) / pts.length, k = Math.cos((lat0 * Math.PI) / 180);
+  const xs = pts.map((p) => p.lon * k), ys = pts.map((p) => -p.lat);
+  const inBox = (s: Spot) => typeof s.lat === "number" && typeof s.lon === "number";
+  const sx = Math.min(...pts.map((p) => p.lon)), ex = Math.max(...pts.map((p) => p.lon)), sy = Math.min(...pts.map((p) => p.lat)), ey = Math.max(...pts.map((p) => p.lat));
+  const mx = (ex - sx) * 0.1 + 1e-5, my = (ey - sy) * 0.1 + 1e-5;
+  // Only spots that fall on or beside this route are drawn on its map.
+  const near = spots.filter((s) => inBox(s) && s.lon! >= sx - mx && s.lon! <= ex + mx && s.lat! >= sy - my && s.lat! <= ey + my);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const W = 640, H = 300, pad = 26, sc = Math.min((W - pad * 2) / Math.max(1e-9, maxX - minX), (H - pad * 2) / Math.max(1e-9, maxY - minY));
+  const ox = (W - (maxX - minX) * sc) / 2, oy = (H - (maxY - minY) * sc) / 2;
+  const X = (lon: number) => (ox + (lon * k - minX) * sc).toFixed(1), Y = (lat: number) => (oy + (-lat - minY) * sc).toFixed(1);
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${X(p.lon)},${Y(p.lat)}`).join("");
+  const marks = near.map((s, i) => `<g><circle cx="${X(s.lon!)}" cy="${Y(s.lat!)}" r="9" fill="var(--orange)"/><text x="${X(s.lon!)}" y="${Y(s.lat!)}" dy="4" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${i + 1}</text></g>`).join("");
+  const legend = near.length ? `<ol class="legend">${near.map((s) => `<li>${esc(s.name)}</li>`).join("")}</ol>` : "";
+  // Elevation profile when the file carried elevation.
+  const el = pts.map((p) => p.ele).filter((e): e is number => typeof e === "number");
+  let prof = "";
+  if (el.length > 2) {
+    const lo = Math.min(...el), hi = Math.max(...el), span = Math.max(1, hi - lo), w = 640, h = 70;
+    const line = el.map((e, i) => `${(i / (el.length - 1)) * w},${h - 6 - ((e - lo) / span) * (h - 12)}`).join(" ");
+    prof = `<svg viewBox="0 0 ${w} ${h}" class="prof" role="img" aria-label="Biểu đồ độ cao, thấp nhất ${lo} m, cao nhất ${hi} m"><polygon points="0,${h} ${line} ${w},${h}" fill="color-mix(in srgb,var(--blue) 18%,transparent)"/><polyline points="${line}" fill="none" stroke="var(--blue)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg><div class="prof-note">Độ cao ${lo}–${hi} m</div>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" class="map" role="img" aria-label="Sơ đồ đường ${esc(r.name)}"><rect width="${W}" height="${H}" rx="10" fill="var(--fill)"/><path d="${d}" fill="none" stroke="var(--blue)" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(pts[0].lon)}" cy="${Y(pts[0].lat)}" r="6" fill="var(--green)" stroke="#fff" stroke-width="2"/><circle cx="${X(pts[pts.length - 1].lon)}" cy="${Y(pts[pts.length - 1].lat)}" r="6" fill="#ff3b30" stroke="#fff" stroke-width="2"/>${marks}</svg>${legend}${prof}`;
+}
+
 const fmtDay = (iso: string) => { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`; };
 
 export function briefHtml(ev: OpsEvent, spots: Spot[], photographers: Photographer[]): string {
@@ -55,6 +89,8 @@ td{padding:8px 10px;border-bottom:.5px solid var(--sep);vertical-align:top}td a{
 select{font:inherit;color:var(--label);background:var(--fill);border:0;border-radius:7px;padding:5px 8px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}.chip{padding:6px 12px;border-radius:999px;background:var(--fill);font-size:14px}
 .empty{color:var(--label2)}
+.route+.route,.route+.box{margin-top:10px}.route-head{display:flex;gap:8px;align-items:center;margin-bottom:8px}.tag2{padding:1px 8px;border-radius:6px;font-size:11px;font-weight:600;background:var(--fill);color:var(--label2)}
+.map{width:100%;height:auto;margin-top:10px;display:block}.prof{width:100%;height:70px;margin-top:8px;display:block}.prof-note{font-size:12px;color:var(--label2)}.legend{margin:8px 0 0;padding-left:0;list-style:none;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--label2);counter-reset:s}.legend li{counter-increment:s}.legend li::before{content:counter(s);display:inline-grid;place-items:center;width:18px;height:18px;margin-right:6px;border-radius:50%;background:var(--orange);color:#fff;font-size:11px;font-weight:700}
 footer{margin-top:34px;text-align:center;font-size:12px;color:var(--label2)}
 @media(max-width:560px){h1{font-size:25px}.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}}
 </style></head><body><div class="wrap">
@@ -75,9 +111,11 @@ ${!b ? `<p class="empty">Chưa có nội dung briefing.</p>` : ""}</section>
 <div class="sort">Sắp xếp<select id="sortBy" aria-label="Sắp xếp"><option value="spot">Tên điểm</option><option value="pg">Photographer</option><option value="arrival">Giờ đến</option></select></div>
 <div class="box table"><table><thead><tr><th>Điểm</th><th>Photographer</th><th>Ống kính</th><th>Giờ đến</th><th>Vị trí</th><th>Ghi chú</th></tr></thead><tbody id="rows">${rows || `<tr><td colspan="6" class="empty">Chưa có điểm chụp.</td></tr>`}</tbody></table></div></section>
 
-<section id="course"><h2>Lộ trình</h2><div class="box">${b && b.course.length ? `<dl class="kv">${b.course.map((c) => `<dt>${esc(c.label)}</dt><dd>${esc(c.value)}</dd>`).join("")}</dl>` : `<p class="empty">Chưa có thông tin lộ trình.</p>`}</div></section>
+<section id="course"><h2>Lộ trình</h2>
+${(b?.routes ?? []).map((r) => `<div class="box route"><div class="route-head"><strong>${esc(r.name)}</strong><span class="tag2">${esc(ROUTE_KIND[r.kind] ?? "")}</span></div><dl class="kv"><dt>Quãng đường</dt><dd>${r.distanceKm.toFixed(1)} km</dd>${r.ascentM || r.descentM ? `<dt>Leo / xuống</dt><dd>↑ ${r.ascentM} m · ↓ ${r.descentM} m</dd>` : ""}</dl>${routeSvg(r, spots)}<p><a download="${esc(r.name.replace(/[^\w\- ]+/g, "").trim() || "route")}.gpx" href="data:application/gpx+xml;base64,${b64(toGpx(r.name, r.points))}">Tải GPX</a></p></div>`).join("")}
+<div class="box"${b?.routes?.length ? ' style="margin-top:10px"' : ""}>${b && b.course.length ? `<dl class="kv">${b.course.map((c) => `<dt>${esc(c.label)}</dt><dd>${esc(c.value)}</dd>`).join("")}</dl>` : b?.routes?.length ? `<p class="empty">Không có ghi chú thêm.</p>` : `<p class="empty">Chưa có thông tin lộ trình.</p>`}</div></section>
 
-<section id="files"><h2>Tệp</h2><div class="box">${b && b.files.length ? `<ul>${b.files.map((f) => `<li>${link(f.url, f.name) || esc(f.name)}</li>`).join("")}</ul>` : `<p class="empty">Chưa có tệp đính kèm.</p>`}</div></section>
+<section id="files"><h2>Tệp</h2><div class="box">${b && b.files.length ? `<ul>${b.files.map((f) => `<li>${f.data && DATA_OK.test(f.data) ? `<a download="${esc(f.name)}" href="${f.data}">${esc(f.name)}</a>` : link(f.url, f.name) || esc(f.name)}</li>`).join("")}</ul>` : `<p class="empty">Chưa có tệp đính kèm.</p>`}</div></section>
 
 <section id="hotel"><h2>Khách sạn</h2><div class="box">${b && b.hotel.name ? `<p><strong>${esc(b.hotel.name)}</strong></p>${b.hotel.address ? `<p>${esc(b.hotel.address)}</p>` : ""}<dl class="kv">${b.hotel.phone ? `<dt>Điện thoại</dt><dd>${esc(b.hotel.phone)}</dd>` : ""}${b.hotel.checkIn ? `<dt>Nhận phòng</dt><dd>${esc(b.hotel.checkIn)}</dd>` : ""}${b.hotel.checkOut ? `<dt>Trả phòng</dt><dd>${esc(b.hotel.checkOut)}</dd>` : ""}${b.hotel.booking ? `<dt>Mã đặt phòng</dt><dd>${esc(b.hotel.booking)}</dd>` : ""}</dl>${link(b.hotel.maps, "Mở bản đồ")}${b.rooms.length ? `<table style="margin-top:10px"><thead><tr><th>Phòng</th><th>Người ở</th></tr></thead><tbody>${b.rooms.map((r) => `<tr><td>${esc(r.room)}</td><td>${esc(r.people)}</td></tr>`).join("")}</tbody></table>` : ""}` : `<p class="empty">Sự kiện này không có thông tin lưu trú.</p>`}</div></section>
 
