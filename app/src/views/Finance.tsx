@@ -150,7 +150,31 @@ export function Finance({ go }: { go: Go }) {
           <button key={id} role="tab" aria-selected={invFilter === id} className={"pill" + (invFilter === id ? " on" : "")} onClick={() => setInvFilter(id)}>{l}</button>
         ))}
       </div>
-      <div className="card list">
+      <div className="card table-wrap desk-only">
+        <table className="mtable">
+          <thead><tr><th><span className="th">Dự án</span></th><th><span className="th">Hóa đơn</span></th><th><span className="th">Hạn</span></th><th className="num"><span className="th">Số tiền</span></th><th className="num"><span className="th">Đã thu</span></th><th><span className="th">Trạng thái</span></th><th /></tr></thead>
+          <tbody>
+            {invoices.map((inv) => {
+              const st = invoiceStatus(d, inv);
+              const paid = paidFor(d, inv.id);
+              return (
+                <tr key={inv.id} onDoubleClick={() => go({ view: "projects", projectId: inv.projectId })}>
+                  <td><button className="as-link" onClick={() => go({ view: "projects", projectId: inv.projectId })}>{projectName(inv.projectId)}</button></td>
+                  <td>{inv.no} <span className="muted">· {inv.note}</span></td>
+                  <td className={st === "overdue" ? "danger" : ""}>{fmtDate(inv.due)}</td>
+                  <td className="num">{money(inv.amount)}</td>
+                  <td className="num">{money(paid)}</td>
+                  <td>{st === "paid" ? <span className="badge tone-green">Đã thu</span> : <button className={"badge badge-btn tone-" + STATUS[st][1]} onClick={() => setPaying(inv)}>{STATUS[st][0]} · Ghi thu</button>}</td>
+                  <td className="num"><button className="icon-mini" aria-label={`Xóa hóa đơn ${inv.no}`} onClick={() => setDeletingInv(inv)}><Icon name="trash" size={15} /></button></td>
+                </tr>
+              );
+            })}
+            {invoices.length === 0 ? <tr><td colSpan={7} className="empty">Không có hóa đơn nào.</td></tr> : null}
+          </tbody>
+          {invoices.length ? <tfoot><tr><td colSpan={3}>Tổng {invoices.length} hóa đơn</td><td className="num">{money(invoices.reduce((a, i) => a + i.amount, 0))}</td><td className="num">{money(invoices.reduce((a, i) => a + paidFor(d, i.id), 0))}</td><td colSpan={2} /></tr></tfoot> : null}
+        </table>
+      </div>
+      <div className="card list phone-only">
         {invoices.map((inv) => {
           const st = invoiceStatus(d, inv);
           const paid = paidFor(d, inv.id);
@@ -188,7 +212,23 @@ export function Finance({ go }: { go: Go }) {
           ))}
         </div>
       ) : null}
-      <div className="card list">
+      <div className="card table-wrap desk-only">
+        <table className="mtable">
+          <thead><tr><th><span className="th">Ngày</span></th><th><span className="th">Nhóm</span></th><th><span className="th">Nội dung</span></th><th className="num"><span className="th">Số tiền</span></th><th /></tr></thead>
+          <tbody>
+            {expenses.map((e) => (
+              <tr key={e.id}>
+                <td>{fmtDate(e.date)}</td><td><span className="badge tone-gray">{e.category}</span></td><td>{e.note || "—"}</td>
+                <td className="num">{money(e.amount)}</td>
+                <td className="num"><button className="icon-mini" aria-label="Xóa chi phí" onClick={() => actions.deleteExpense(e.id)}><Icon name="trash" size={15} /></button></td>
+              </tr>
+            ))}
+            {expenses.length === 0 ? <tr><td colSpan={5} className="empty">Chưa có chi phí trong kỳ này.</td></tr> : null}
+          </tbody>
+          {expenses.length ? <tfoot><tr><td colSpan={3}>Tổng chi phí</td><td className="num">{money(spent)}</td><td /></tr></tfoot> : null}
+        </table>
+      </div>
+      <div className="card list phone-only">
         {expenses.map((e) => (
           <div key={e.id} className="row">
             <span className="row-main"><strong>{e.note || e.category}</strong><small>{e.category} · {fmtDate(e.date)}</small></span>

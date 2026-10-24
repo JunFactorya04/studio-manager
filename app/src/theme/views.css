@@ -171,3 +171,20 @@
   .inbox-insp { display: none; }
 }
 @media (min-width: 761px) { .inbox-list .pill { padding: 0 7px; } }
+
+/* ---------- finance (Numbers): tables with footer totals ---------- */
+.desk-only { display: none; }
+@media (min-width: 761px) {
+  .desk-only { display: block; }
+  .mtable th .th { display: block; padding: 7px 10px; }
+  .mtable th.num .th { text-align: right; }
+  .mtable tfoot td { font-weight: 600; border-top: 0.5px solid var(--mac-separator); background: var(--mac-under); height: 30px; }
+  .mtable td.empty { text-align: center; color: var(--mac-label-2); }
+  .mtable .as-link { color: var(--mac-label); font-weight: 500; text-align: left; }
+  .mtable .as-link:hover { color: var(--sys-blue); }
+  .mtable td.danger { color: var(--sys-red); }
+  .mtable .icon-mini { opacity: 0.4; } .mtable tr:hover .icon-mini { opacity: 1; }
+  .big-number { font-family: var(--font-display); font-size: 30px; font-weight: 700; display: flex; flex-direction: column; gap: 2px; }
+  .big-number span { font-size: var(--fs-callout); font-weight: 500; font-family: var(--font-ui); }
+}
+@media (max-width: 760px) { .desk-only { display: none; } }
