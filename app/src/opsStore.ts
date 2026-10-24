@@ -10,10 +10,25 @@ export type JobStatus = "pending" | "running" | "succeeded" | "failed" | "paused
 export type DeliveryStatus = "pending" | "uploading" | "done" | "failed";
 export type LogKind = "ingest" | "process" | "export" | "upload" | "error" | "retry" | "config";
 
-export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string }
+export interface Brief {
+  teamLeader: string; startTime: string; endTime: string; participants: string;
+  notes: string[]; welcome: string; guidance: string[];
+  venueName: string; venueAddress: string; venueMaps: string;
+  course: { label: string; value: string }[];
+  files: { name: string; url: string }[];
+  hotel: { name: string; address: string; phone: string; maps: string; checkIn: string; checkOut: string; booking: string };
+  rooms: { room: string; people: string }[];
+}
+export const emptyBrief = (): Brief => ({
+  teamLeader: "", startTime: "", endTime: "", participants: "", notes: [], welcome: "", guidance: [],
+  venueName: "", venueAddress: "", venueMaps: "", course: [], files: [],
+  hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [],
+});
+export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string; brief?: Brief }
 export interface Spot {
   id: string; eventId: string; name: string; captureDir: string; outputDir: string;
   c1Session: string; recipe: string; photographerId: string; status: SpotStatus;
+  arrival?: string; lens?: string; mapsUrl?: string; tip?: string; // briefing: where and when the photographer should be
 }
 export interface Photographer { id: string; name: string; phone: string; email: string; note: string }
 export interface Job {
@@ -49,14 +64,26 @@ function seed(): OpsData {
     { id: "ph3", name: "An", phone: "0912 000 333", email: "", note: "Hỗ trợ" },
   ];
   const events: OpsEvent[] = [
-    { id: "ev1", name: "Giải chạy Đạm Thủy", date: t, endDate: addDays(t, 1), venue: "Bờ sông Đạm Thủy", status: "live", note: "3 điểm chụp, giao ảnh trong ngày" },
+    {
+      id: "ev1", name: "Giải chạy Đạm Thủy", date: t, endDate: addDays(t, 1), venue: "Bờ sông Đạm Thủy", status: "live", note: "3 điểm chụp, giao ảnh trong ngày",
+      brief: {
+        teamLeader: "Huy", startTime: "06:00", endTime: "15:00", participants: "1.200",
+        notes: ["Tạo thư mục mới trước khi chụp ở điểm mới", "Đánh dấu và khóa khoảng 20 ảnh đẹp nhất mỗi điểm", "Giao ảnh JPEG 2400px, kiểm tra Recipe trước giờ xuất phát"],
+        welcome: "Chào cả đội! Đây là trang thông tin chung của sự kiện. Mọi cập nhật về điểm chụp và giờ giấc sẽ nằm ở đây.",
+        guidance: ["Thẻ nhớ đọc nhanh trên 95 MB/s và đầu đọc thẻ dự phòng", "Mang 3–4 pin sạc đầy mỗi ngày, ít điểm có ổ điện", "Mang áo khoác, túi nhựa che máy, nước và đồ ăn nhẹ"],
+        venueName: "Công viên bờ sông Đạm Thủy", venueAddress: "Đường Trung Chính, Đạm Thủy, Tân Bắc", venueMaps: "https://maps.google.com/?q=Tamsui+Riverside",
+        course: [{ label: "Cự ly", value: "10 km" }, { label: "Số vòng", value: "1" }],
+        files: [{ name: "Lộ trình (GPX)", url: "https://example.com/course.gpx" }, { name: "Sơ đồ điểm chụp (PDF)", url: "https://example.com/spots.pdf" }],
+        hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [],
+      },
+    },
     { id: "ev2", name: "Hội thao trường Minh Đức", date: addDays(t, -9), endDate: addDays(t, -9), venue: "Sân vận động", status: "done", note: "" },
     { id: "ev3", name: "Triển lãm Công nghệ", date: addDays(t, 12), endDate: addDays(t, 14), venue: "Trung tâm Triển lãm", status: "draft", note: "Chưa gán điểm chụp" },
   ];
   const spots: Spot[] = [
-    { id: "sp1", eventId: "ev1", name: "Vạch xuất phát", captureDir: "D:\\Capture\\DamThuy\\Start", outputDir: "D:\\Output\\DamThuy\\Start", c1Session: "DamThuy_Start.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph1", status: "active" },
-    { id: "sp2", eventId: "ev1", name: "Cầu Tình Yêu", captureDir: "D:\\Capture\\DamThuy\\Bridge", outputDir: "D:\\Output\\DamThuy\\Bridge", c1Session: "DamThuy_Bridge.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph2", status: "active" },
-    { id: "sp3", eventId: "ev1", name: "Vạch đích", captureDir: "D:\\Capture\\DamThuy\\Finish", outputDir: "D:\\Output\\DamThuy\\Finish", c1Session: "DamThuy_Finish.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph3", status: "error" },
+    { id: "sp1", eventId: "ev1", name: "Vạch xuất phát", captureDir: "D:\\Capture\\DamThuy\\Start", outputDir: "D:\\Output\\DamThuy\\Start", c1Session: "DamThuy_Start.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph1", status: "active", arrival: "05:00", lens: "24-70 / 70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Start", tip: "Chụp từ phía sau vạch" },
+    { id: "sp2", eventId: "ev1", name: "Cầu Tình Yêu", captureDir: "D:\\Capture\\DamThuy\\Bridge", outputDir: "D:\\Output\\DamThuy\\Bridge", c1Session: "DamThuy_Bridge.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph2", status: "active", arrival: "06:30", lens: "70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Bridge", tip: "Ưu tiên ảnh nhóm" },
+    { id: "sp3", eventId: "ev1", name: "Vạch đích", captureDir: "D:\\Capture\\DamThuy\\Finish", outputDir: "D:\\Output\\DamThuy\\Finish", c1Session: "DamThuy_Finish.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph3", status: "error", arrival: "07:00", lens: "16-35", mapsUrl: "https://maps.google.com/?q=Tamsui+Finish", tip: "Khóa 20 ảnh về đích" },
     { id: "sp4", eventId: "ev2", name: "Sân chính", captureDir: "D:\\Capture\\MinhDuc\\Main", outputDir: "D:\\Output\\MinhDuc\\Main", c1Session: "MinhDuc_Main.cosessiondb", recipe: "JPEG 2000px", photographerId: "ph1", status: "idle" },
   ];
 

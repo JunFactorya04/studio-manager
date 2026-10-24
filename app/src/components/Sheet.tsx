@@ -1,15 +1,22 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+
+const openSheets: object[] = [];
 
 // Modal sheet: centered dialog on desktop, bottom sheet on phones.
 export function Sheet({
   title, onClose, children, footer, wide,
 }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
+  // Only the topmost sheet reacts to Escape, so closing a preview does not also close the form under it.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const token = {};
+    openSheets.push(token);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && openSheets[openSheets.length - 1] === token) closeRef.current(); };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+    return () => { window.removeEventListener("keydown", onKey); openSheets.splice(openSheets.indexOf(token), 1); };
+  }, []);
 
   // Portal to <body> so a sheet opened from inside another sheet still covers the whole window.
   return createPortal(

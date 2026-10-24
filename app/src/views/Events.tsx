@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { Confirm, Field, Sheet } from "../components/Sheet";
+import { BriefSheet } from "../components/BriefSheet";
 import { fmtDate, today } from "../store";
 import { pickFolder, isDesktop } from "../native";
 import {
@@ -18,6 +19,7 @@ export function Events({ go, route }: { go: Go; route?: Route }) {
   const [editSpot, setEditSpot] = useState<Spot | "new" | null>(null);
   const [delEvent, setDelEvent] = useState<OpsEvent | null>(null);
   const [delSpot, setDelSpot] = useState<Spot | null>(null);
+  const [brief, setBrief] = useState(false);
 
   const query = q.trim().toLowerCase();
   const list = o.events.filter((e) => !query || (e.name + " " + e.venue).toLowerCase().includes(query)).sort((a, b) => b.date.localeCompare(a.date));
@@ -82,6 +84,7 @@ export function Events({ go, route }: { go: Go; route?: Route }) {
                 <button className="btn tinted" onClick={() => setEditEvent(ev)}><Icon name="edit" />Sửa</button>
                 <button className="btn tinted" onClick={() => setDelEvent(ev)}><Icon name="trash" />Xóa</button>
               </div>
+              <button className="btn tinted" onClick={() => setBrief(true)}><Icon name="doc" />Trang briefing cho photographer</button>
 
               <div className="section-head"><h3 className="insp-h">Điểm chụp ({spots.length})</h3><button className="link" onClick={() => setEditSpot("new")}>+ Spot</button></div>
               {spots.length ? spots.map((s) => {
@@ -110,6 +113,7 @@ export function Events({ go, route }: { go: Go; route?: Route }) {
         </aside>
       </div>
 
+      {brief && ev ? <BriefSheet event={ev} onClose={() => setBrief(false)} /> : null}
       {editEvent ? <EventForm event={editEvent === "new" ? undefined : editEvent} onClose={() => setEditEvent(null)} onSaved={(id) => setSel(id)} /> : null}
       {editSpot && ev ? <SpotForm eventId={ev.id} spot={editSpot === "new" ? undefined : editSpot} onClose={() => setEditSpot(null)} /> : null}
       {delEvent ? <Confirm title="Xóa sự kiện" text={`Xóa "${delEvent.name}" cùng các điểm chụp, job và lịch sử giao ảnh trong app? Ảnh trên ổ đĩa không bị xóa.`} confirmLabel="Xóa" onConfirm={() => { opsActions.deleteEvent(delEvent.id); setSel(o.events.find((e) => e.id !== delEvent.id)?.id ?? null); }} onClose={() => setDelEvent(null)} /> : null}
@@ -148,7 +152,7 @@ function EventForm({ event, onClose, onSaved }: { event?: OpsEvent; onClose: () 
 
 function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; onClose: () => void }) {
   const o = useOps();
-  const [f, setF] = useState({ name: spot?.name ?? "", captureDir: spot?.captureDir ?? "", outputDir: spot?.outputDir ?? "", c1Session: spot?.c1Session ?? "", recipe: spot?.recipe ?? "JPEG 2400px", photographerId: spot?.photographerId ?? "", status: (spot?.status ?? "idle") as SpotStatus });
+  const [f, setF] = useState({ name: spot?.name ?? "", captureDir: spot?.captureDir ?? "", outputDir: spot?.outputDir ?? "", c1Session: spot?.c1Session ?? "", recipe: spot?.recipe ?? "JPEG 2400px", photographerId: spot?.photographerId ?? "", status: (spot?.status ?? "idle") as SpotStatus, arrival: spot?.arrival ?? "", lens: spot?.lens ?? "", mapsUrl: spot?.mapsUrl ?? "", tip: spot?.tip ?? "" });
   const [err, setErr] = useState("");
   const browse = async (key: "captureDir" | "outputDir") => { const p = await pickFolder(key === "captureDir" ? "Thư mục nhận ảnh của điểm chụp" : "Thư mục ảnh đã xuất"); if (p) setF((x) => ({ ...x, [key]: p })); };
   const save = () => {
@@ -187,6 +191,12 @@ function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; on
           </select>
         </Field>
       </div>
+      <div className="f-row">
+        <Field label="Giờ đến"><input className="input" value={f.arrival} onChange={(e) => setF({ ...f, arrival: e.target.value })} placeholder="05:30" /></Field>
+        <Field label="Ống kính"><input className="input" value={f.lens} onChange={(e) => setF({ ...f, lens: e.target.value })} placeholder="24-70 / 70-200" /></Field>
+      </div>
+      <Field label="Liên kết bản đồ điểm chụp"><input className="input" value={f.mapsUrl} onChange={(e) => setF({ ...f, mapsUrl: e.target.value })} placeholder="https://maps.google.com/..." /></Field>
+      <Field label="Ghi chú cho photographer"><input className="input" value={f.tip} onChange={(e) => setF({ ...f, tip: e.target.value })} /></Field>
     </Sheet>
   );
 }
