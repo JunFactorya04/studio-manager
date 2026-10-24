@@ -126,3 +126,48 @@
   .lib-main .photo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .lib-bar .select { flex: 1; min-width: 0; }
 }
+
+/* ---------- inbox (Mail): list | conversation | customer inspector ---------- */
+.inbox-insp { display: none; }
+@media (min-width: 761px) {
+  .inbox-page { max-width: none; }
+  .inbox { grid-template-columns: 300px minmax(0, 1fr) 260px; gap: 0; background: var(--mac-box); border-radius: var(--box-radius); box-shadow: var(--shadow-box); overflow: hidden; height: calc(100vh - var(--toolbar-h) - 56px); min-height: 480px; align-items: stretch; }
+  .inbox-list { gap: 8px; padding: 10px; border-right: 0.5px solid var(--mac-separator); background: var(--mac-under); overflow: hidden; }
+  .inbox-list .card.list { flex: 1; overflow-y: auto; background: transparent; box-shadow: none; border-radius: 0; }
+  .inbox-list .pills { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+  .inbox-list .row.thread { border-radius: 8px; border-bottom: 0; padding: 8px 8px; margin-bottom: 1px; align-items: center; }
+  .inbox-list .row.thread:hover { background: var(--mac-hover); }
+  .inbox-list .row.thread.selected { background: var(--sys-blue); color: #fff; }
+  .row.thread.selected small, .row.thread.selected .thread-msg, .row.thread.selected strong { color: #fff; }
+  .row.thread.selected .avatar { background: rgba(255, 255, 255, 0.25); }
+  .row.thread.selected .unread-count { background: #fff; color: var(--sys-blue); }
+  .thread-msg { font-size: var(--fs-callout); }
+  .avatar { width: 34px; height: 34px; font-size: 12px; background: var(--mac-hover); }
+  .avatar.lg { width: 64px; height: 64px; font-size: 20px; }
+  .avatar-ch { border-color: var(--mac-box); width: 12px; height: 12px; }
+  .chat.card { border-radius: 0; box-shadow: none; height: auto; min-height: 0; position: static; }
+  .chat-head { height: 48px; padding: 0 14px; }
+  .chat-body { background: var(--mac-window); padding: 14px 18px; }
+  .bubble { font-size: var(--fs-body); border-radius: 16px; max-width: 70%; }
+  .bubble.in { background: var(--mac-under); color: var(--mac-label); }
+  .bubble.out { background: var(--sys-blue); }
+  .composer .textarea { border-radius: 8px; min-height: 34px; }
+  .composer .who .select { height: 34px; }
+  .inbox-insp { display: block; border-left: 0.5px solid var(--mac-separator); border-radius: 0; box-shadow: none; padding: 16px 14px; overflow-y: auto; background: var(--mac-box); }
+  .insp-who { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 6px; text-align: center; }
+  .insp-who strong { font-size: var(--fs-title3); }
+  .insp-h { font-size: var(--fs-callout); font-weight: 600; color: var(--mac-label-2); margin: 10px 0 0; }
+  .insp-proj { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; text-align: left; padding: 8px; border-radius: 8px; background: var(--mac-under); color: var(--mac-label); }
+  .insp-proj:hover { background: var(--mac-hover); }
+  .insp-proj small { grid-column: 1 / -1; }
+  .insp-proj small.warn { color: var(--sys-orange); }
+  .inbox.has-open .inbox-list { display: flex; }
+  .inbox.has-open .chat { display: flex; }
+  .inbox .chat-back { display: none; }
+  .inbox-page > .f-hint { margin: 0; }
+}
+@media (min-width: 761px) and (max-width: 1100px) {
+  .inbox { grid-template-columns: 280px minmax(0, 1fr); }
+  .inbox-insp { display: none; }
+}
+@media (min-width: 761px) { .inbox-list .pill { padding: 0 7px; } }

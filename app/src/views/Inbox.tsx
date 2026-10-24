@@ -3,7 +3,7 @@ import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { Field, Sheet } from "../components/Sheet";
 import {
-  STAGES, actions, fmtDate, initials, invoiceStatus, money, paidFor, today, useData,
+  STAGES, STAGE_TONE, actions, fmtDate, initials, invoiceStatus, money, paidFor, projectPaid, today, useData,
   type Channel, type Client, type Data, type Project,
 } from "../store";
 import type { Go, Route } from "../nav";
@@ -69,6 +69,8 @@ export function Inbox({ go, route }: { go: Go; route?: Route }) {
   const projects = open ? d.projects.filter((p) => p.clientId === open.client.id) : [];
   const latest = [...projects].sort((a, b) => b.date.localeCompare(a.date))[0];
 
+  // On desktop show the newest conversation right away so the three columns are never empty.
+  useEffect(() => { if (!openId && threads[0] && window.matchMedia("(min-width: 761px)").matches) setOpenId(threads[0].client.id); }, [openId, threads]);
   useEffect(() => { if (openId) actions.markRead(openId); }, [openId, open?.msgs.length]);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [openId, open?.msgs.length]);
 
@@ -197,6 +199,36 @@ export function Inbox({ go, route }: { go: Go; route?: Route }) {
             <div className="chat-empty"><Icon name="message" size={32} /><p>Chọn một cuộc trò chuyện</p></div>
           )}
         </section>
+
+        <aside className="inbox-insp card" aria-label="Thông tin khách">
+          {open ? (
+            <div className="insp">
+              <div className="insp-who">
+                <span className="avatar lg">{initials(open.client.name)}<span className="avatar-ch" style={{ background: CH[open.client.channel].color }} /></span>
+                <strong>{open.client.name}</strong>
+                <small>{CH[open.client.channel].label}</small>
+              </div>
+              <dl className="insp-kv">
+                <dt>Điện thoại</dt><dd>{open.client.phone || "—"}</dd>
+                <dt>Email</dt><dd>{open.client.email || "—"}</dd>
+                <dt>Số dự án</dt><dd>{projects.length}</dd>
+                <dt>Tin nhắn</dt><dd>{open.msgs.length}</dd>
+              </dl>
+              <h3 className="insp-h">Dự án</h3>
+              {projects.length ? projects.map((p) => {
+                const owed = Math.max(p.total - projectPaid(d, p.id), 0);
+                return (
+                  <button key={p.id} className="insp-proj" onClick={() => go({ view: "projects", projectId: p.id })}>
+                    <span className="row-main"><strong>{p.name}</strong><small>{fmtDate(p.date)}</small></span>
+                    <span className={"badge tone-" + STAGE_TONE[p.stage]}>{STAGES.find((s) => s.id === p.stage)!.short}</span>
+                    {owed > 0 ? <small className="warn">Còn nợ {money(owed)}</small> : <small>Đã thu đủ</small>}
+                  </button>
+                );
+              }) : <p className="insp-note">Chưa có dự án.</p>}
+              {open.client.note ? <><h3 className="insp-h">Ghi chú</h3><p className="insp-note">{open.client.note}</p></> : null}
+            </div>
+          ) : <div className="empty-insp"><p className="insp-note">Chọn một cuộc trò chuyện</p></div>}
+        </aside>
       </div>
 
       <p className="f-hint">
