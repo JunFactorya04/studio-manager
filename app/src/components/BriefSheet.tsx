@@ -23,6 +23,7 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
   const [guidance, setGuidance] = useState(b0.guidance.join("\n"));
   const [course, setCourse] = useState(b0.course.map((c) => `${c.label}: ${c.value}`).join("\n"));
   const [files, setFiles] = useState(b0.files.filter((f) => !f.data).map((f) => `${f.name} | ${f.url}`).join("\n"));
+  const [channels, setChannels] = useState((b0.channels ?? []).map((c) => `${c.name} | ${c.url}`).join("\n"));
   const [rooms, setRooms] = useState(b0.rooms.map((r) => `${r.room}: ${r.people}`).join("\n"));
   const [preview, setPreview] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
@@ -68,6 +69,7 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
     ...b, notes: lines(notes), guidance: lines(guidance),
     course: pairs(course, ":").map(([label, value]) => ({ label, value })),
     files: [...b.files.filter((f) => f.data), ...pairs(files, "|").map(([name, url]) => ({ name, url }))],
+    channels: pairs(channels, "|").map(([name, url]) => ({ name, url })),
     rooms: pairs(rooms, ":").map(([room, people]) => ({ room, people })),
   });
   const html = () => briefHtml({ ...event, brief: build() }, o.spots.filter((s) => s.eventId === event.id), o.photographers);
@@ -125,6 +127,7 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
           <label className="btn tinted file-btn"><Icon name="upload" size={15} />Thêm tệp…<input type="file" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} /></label>
         </div>
         {msg ? <small className="f-hint" role="status">{msg}</small> : null}
+        <Field label="Kênh liên lạc và biểu mẫu (mỗi dòng dạng Tên | liên kết, ví dụ nhóm LINE, kiểm tra máy ảnh)"><textarea className="textarea" rows={2} value={channels} onChange={(e) => setChannels(e.target.value)} placeholder="Nhóm LINE | https://line.me/..." /></Field>
         <Field label="Liên kết tệp khác (mỗi dòng dạng Tên | liên kết)"><textarea className="textarea" rows={2} value={files} onChange={(e) => setFiles(e.target.value)} placeholder="Lộ trình GPX | https://..." /></Field>
         <div className="f-row">
           <Field label="Khách sạn"><input className="input" value={b.hotel.name} onChange={(e) => hotel({ name: e.target.value })} /></Field>

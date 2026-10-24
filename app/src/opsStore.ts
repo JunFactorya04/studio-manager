@@ -25,11 +25,12 @@ export interface Brief {
   routes: RouteInfo[];
   hotel: { name: string; address: string; phone: string; maps: string; checkIn: string; checkOut: string; booking: string };
   rooms: { room: string; people: string }[];
+  channels?: { name: string; url: string }[]; // chat groups, camera-check form, request form...
 }
 export const emptyBrief = (): Brief => ({
   teamLeader: "", startTime: "", endTime: "", participants: "", notes: [], welcome: "", guidance: [],
   venueName: "", venueAddress: "", venueMaps: "", course: [], files: [], routes: [],
-  hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [],
+  hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [], channels: [],
 });
 export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string; brief?: Brief }
 export interface Spot {
