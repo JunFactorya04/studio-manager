@@ -74,7 +74,9 @@ const IC: Record<string, string> = {
   req: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/>',
   phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.4-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/>',
 };
-const ico = (n: string, size = 16) => `<svg class="i" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n] ?? ""}</svg>`;
+const ico = (n: string, size = 16) => `<svg class="i" width="${size}" height="${size}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+// Each icon is written once here and reused with <use>, which keeps the page small.
+const SPRITE = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${Object.entries(IC).map(([k, v]) => `<symbol id="i-${k}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${v}</symbol>`).join("")}</defs></svg>`;
 
 // All-day calendar entry so the shoot lands in the photographer's phone calendar.
 function icsOf(ev: OpsEvent, where: string): string {
@@ -264,6 +266,7 @@ footer{margin:10px 0 0;text-align:center;font-size:11px;letter-spacing:.1em;text
 .tbl thead{display:none}.tbl,.tbl tbody,.tbl tr,.tbl td{display:block}.tbl tr{padding:10px 8px 10px 12px}.tbl td{border:0;padding:2px 4px;display:flex;gap:10px}.tbl td::before{content:attr(data-l);flex:none;width:92px;color:var(--label2);font-size:12px;padding-top:2px}.tbl .phl{display:none}.table{border:0}.tbl tbody tr{margin-bottom:8px;border-radius:10px;border:1px solid var(--sep)}#map{height:320px}}
 @media print{.tabs,.acts,.tools,.sat{display:none}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}.card{break-inside:avoid}#map{display:none!important}#mapfb{display:block!important}}
 </style></head><body data-id="${esc(ev.id)}" data-date="${esc(ev.date)}">
+${SPRITE}
 <header class="hero"><div class="hero-in">
 <div class="eyebrow">Studio Manager · Briefing sự kiện</div><span class="status ${ev.status}">${esc(status)}</span>
 <h1>${esc(ev.name)}</h1>
