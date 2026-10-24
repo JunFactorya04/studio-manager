@@ -13,11 +13,11 @@ export interface Route {
 
 export type Go = (route: Route) => void;
 
-export const NAV: { view: View; label: string; icon: IconName; mobile: boolean }[] = [
-  { view: "dashboard", label: "Tổng quan", icon: "home", mobile: true },
-  { view: "calendar", label: "Lịch chụp", icon: "calendar", mobile: false },
-  { view: "projects", label: "Dự án", icon: "folder", mobile: true },
-  { view: "library", label: "Thư viện", icon: "photo", mobile: true },
-  { view: "inbox", label: "Tin nhắn", icon: "message", mobile: true },
-  { view: "finance", label: "Tài chính", icon: "chart", mobile: true },
+export const NAV: { view: View; label: string; short: string; icon: IconName; mobile: boolean }[] = [
+  { view: "dashboard", label: "Tổng quan", short: "Tổng quan", icon: "home", mobile: true },
+  { view: "calendar", label: "Lịch chụp", short: "Lịch", icon: "calendar", mobile: true },
+  { view: "projects", label: "Dự án", short: "Dự án", icon: "folder", mobile: true },
+  { view: "library", label: "Thư viện", short: "Thư viện", icon: "photo", mobile: true },
+  { view: "inbox", label: "Tin nhắn", short: "Tin nhắn", icon: "message", mobile: true },
+  { view: "finance", label: "Tài chính", short: "Tài chính", icon: "chart", mobile: true },
 ];

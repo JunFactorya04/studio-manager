@@ -9,10 +9,10 @@ import {
 import type { Go, Route } from "../nav";
 
 const CH: Record<Channel, { label: string; color: string }> = {
-  line: { label: "LINE", color: "#06A045" },
-  messenger: { label: "Messenger", color: "#8E44D9" },
-  zalo: { label: "Zalo", color: "#0068FF" },
-  email: { label: "Email", color: "#8E8E93" },
+  line: { label: "LINE", color: "var(--ch-line)" },
+  messenger: { label: "Messenger", color: "var(--ch-messenger)" },
+  zalo: { label: "Zalo", color: "var(--ch-zalo)" },
+  email: { label: "Email", color: "var(--ch-email)" },
 };
 
 const timeLabel = (iso: string) => {

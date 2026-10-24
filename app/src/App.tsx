@@ -15,7 +15,8 @@ import { WindowControls } from "./components/WindowControls";
 import { SettingsSheet } from "./components/SettingsSheet";
 
 const STAGE_DOT: Record<string, string> = {
-  quote: "#8e8e93", deposit: "#8e8e93", shoot: "#0a84ff", cull: "#8e5bd9", edit: "#ff9f0a", review: "#ff375f", delivered: "#30d158",
+  quote: "var(--stage-quote)", deposit: "var(--stage-deposit)", shoot: "var(--stage-shoot)", cull: "var(--stage-cull)",
+  edit: "var(--stage-edit)", review: "var(--stage-review)", delivered: "var(--stage-delivered)",
 };
 
 export default function App() {
@@ -125,7 +126,7 @@ export default function App() {
           return (
             <button key={item.view} className={"tab" + (active ? " active" : "")} aria-current={active ? "page" : undefined} onClick={() => go({ view: item.view })}>
               <Icon name={item.icon} size={22} />
-              <span>{item.label}</span>
+              <span>{item.short}</span>
               {b ? <span className="tab-badge">{b}</span> : null}
             </button>
           );

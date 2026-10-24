@@ -73,6 +73,9 @@
   }
 }
 
+/* Messaging channel brand colors */
+:root { --ch-line: #06a045; --ch-messenger: var(--sys-purple); --ch-zalo: #0068ff; --ch-email: var(--sys-gray); }
+
 /* Stage colors used across badges, dots, charts and the board */
 :root {
   --stage-quote: var(--sys-gray); --stage-deposit: var(--sys-teal); --stage-shoot: var(--sys-blue);

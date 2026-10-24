@@ -4,7 +4,7 @@ import { Icon } from "../components/Icon";
 import { Confirm, Field, Sheet } from "../components/Sheet";
 import { InvoiceForm, PaymentForm } from "../components/MoneyForms";
 import {
-  EXPENSE_CATEGORIES, actions, fmtDate, invoiceStatus, isoDate, money, paidFor, today, useData,
+  EXPENSE_CATEGORIES, actions, addDays, daysBetween, fmtDate, invoiceStatus, isoDate, money, paidFor, today, useData,
   type Invoice, type InvoiceStatus,
 } from "../store";
 import type { Go } from "../nav";
@@ -45,7 +45,10 @@ export function Finance({ go }: { go: Go }) {
   const [pFrom, pTo] = periodRange(period, -1);
   const inRange = (date: string, a: string, b: string) => date >= a && date <= b;
   const revenue = d.payments.filter((p) => inRange(p.date, from, to)).reduce((s, p) => s + p.amount, 0);
-  const prevRevenue = d.payments.filter((p) => inRange(p.date, pFrom, pTo)).reduce((s, p) => s + p.amount, 0);
+  // Compare the same number of days into the previous period, so a half-finished month is not set against a full one.
+  const elapsed = Math.min(daysBetween(from, today()) + 1, daysBetween(from, to) + 1);
+  const pCut = addDays(pFrom, Math.max(elapsed, 1) - 1) < pTo ? addDays(pFrom, Math.max(elapsed, 1) - 1) : pTo;
+  const prevRevenue = d.payments.filter((p) => inRange(p.date, pFrom, pCut)).reduce((s, p) => s + p.amount, 0);
   const change = prevRevenue ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100) : null;
   const expenses = d.expenses.filter((e) => inRange(e.date, from, to));
   const spent = expenses.reduce((s, e) => s + e.amount, 0);
@@ -104,7 +107,7 @@ export function Finance({ go }: { go: Go }) {
           <small className="muted">Đã thu {label}</small>
           <div className="big-number">
             {money(revenue)}
-            {change !== null ? <span className={change >= 0 ? "success" : "danger"}>{change >= 0 ? "+" : ""}{change}% so với kỳ trước</span> : null}
+            {change !== null ? <span className={change >= 0 ? "success" : "danger"}>{change >= 0 ? "+" : ""}{change}% so với cùng kỳ trước</span> : null}
           </div>
           <div className="bars" role="img" aria-label={"Tiền thu 6 tháng gần nhất: " + months.map((m) => `${m.label} ${money(m.value)}`).join(", ")}>
             {months.map((m, i) => (

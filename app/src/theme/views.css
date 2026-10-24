@@ -188,3 +188,27 @@
   .big-number span { font-size: var(--fs-callout); font-weight: 500; font-family: var(--font-ui); }
 }
 @media (max-width: 760px) { .desk-only { display: none; } }
+
+/* ---------- phone: 44pt touch targets ---------- */
+@media (max-width: 760px) {
+  .btn, .chip-btn, .pill, .select, .input, .segmented button { min-height: 44px; }
+  .chip-btn { padding: 0 14px; }
+  .tab { min-height: 48px; }
+  /* Per-photo mark buttons are too small to tap in a 4-up grid: the tile opens the viewer, which has large Giữ/Loại buttons. Keep them as state badges only. */
+  .tile-mark { pointer-events: none; }
+  .tile-mark:not(.on) { opacity: 0 !important; }
+  .icon-mini { min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; }
+}
+
+/* phone: extend hit areas of small inline controls without changing how they look */
+@media (max-width: 760px) {
+  .w-link, .link, .badge-btn, .funnel-row, .group-head, .ev { position: relative; }
+  .w-link::after, .link::after, .badge-btn::after, .funnel-row::after { content: ""; position: absolute; inset: -14px -8px; }
+  .link, .w-link { display: inline-flex; align-items: center; min-height: 44px; }
+  .badge-btn { min-height: 28px; padding: 4px 10px; }
+  .badge-btn::after { inset: -8px -4px; }
+  .funnel-row { min-height: 44px; }
+  .composer .textarea, .search input { min-height: 44px; }
+  .search { min-height: 44px; }
+}
+@media (max-width: 760px) { .segmented { height: auto; } }
