@@ -6,6 +6,7 @@ import "./styles.css";
 import "./theme/mac.css";
 import "./theme/widgets.css";
 import "./theme/views.css";
+import "./theme/ops.css";
 import "./login.css";
 
 // macOS gets an overlay title bar, so the layout leaves room for the window buttons.

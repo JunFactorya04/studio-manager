@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Icon } from "./components/Icon";
-import { NAV, type Route } from "./nav";
+import { NAV, OPS_NAV, type Route } from "./nav";
 import { STAGES, initials, useData } from "./store";
 import { Dashboard } from "./views/Dashboard";
 import { Projects } from "./views/Projects";
@@ -11,6 +11,9 @@ import { Inbox } from "./views/Inbox";
 import { Finance } from "./views/Finance";
 import { Calendar } from "./views/Calendar";
 import { Login } from "./views/Login";
+import { More } from "./views/More";
+import { OpsOverview } from "./views/OpsOverview";
+import { Events } from "./views/Events";
 import { WindowControls } from "./components/WindowControls";
 import { SettingsSheet } from "./components/SettingsSheet";
 
@@ -49,6 +52,9 @@ export default function App() {
   else if (route.view === "library") screen = <Library key={(route.photos ?? "") + (route.projectId ?? "")} go={go} route={route} />;
   else if (route.view === "inbox") screen = <Inbox go={go} route={route} />;
   else if (route.view === "finance") screen = <Finance go={go} />;
+  else if (route.view === "more") screen = <More go={go} openSettings={() => setSettings(true)} />;
+  else if (route.view === "ops") screen = <OpsOverview go={go} />;
+  else if (route.view === "events") screen = <Events key={route.eventId ?? ""} go={go} route={route} />;
   else screen = <Dashboard go={go} />;
 
   const isActive = (view: Route["view"]) => route.view === view && !route.projectId && !route.photos;
@@ -77,6 +83,16 @@ export default function App() {
             );
           })}
         </nav>
+
+        <div className="side-section">
+          <span className="side-head">Vận hành</span>
+          {OPS_NAV.map((item) => (
+            <button key={item.view} className={"side-item" + (isActive(item.view) ? " active" : "")} aria-current={isActive(item.view) ? "page" : undefined} onClick={() => go({ view: item.view })}>
+              <Icon name={item.icon} size={16} />
+              <span className="side-label">{item.label}</span>
+            </button>
+          ))}
+        </div>
 
         <div className="side-section">
           <span className="side-head">Đang thực hiện</span>
@@ -131,6 +147,15 @@ export default function App() {
             </button>
           );
         })}
+        {(() => {
+          const onMore = !NAV.some((n) => n.mobile && n.view === route.view) && !project;
+          return (
+            <button className={"tab" + (onMore ? " active" : "")} aria-current={onMore ? "page" : undefined} onClick={() => go({ view: "more" })}>
+              <Icon name="more" size={22} />
+              <span>Thêm</span>
+            </button>
+          );
+        })()}
       </nav>
 
       {settings ? <SettingsSheet onClose={() => setSettings(false)} /> : null}
