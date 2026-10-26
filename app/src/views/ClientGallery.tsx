@@ -3,7 +3,8 @@ import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { Field } from "../components/Sheet";
 import { actions, addDays, clientOf, fmtDate, today, useData, type Project } from "../store";
-import { fileUrl } from "../native";
+import { fileUrl, isDesktop, slug } from "../native";
+import { galleryHtml, parsePick, type GalleryPhoto } from "../galleryPage";
 import type { Go } from "../nav";
 
 type Filter = "all" | "picked" | "unpicked";
@@ -69,6 +70,49 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
   };
 
   const names = picked.map((a) => a.base);
+
+  // ---- page for the client (one HTML file) and the code they send back ----
+  const [busy, setBusy] = useState(false);
+  const [pasted, setPasted] = useState("");
+  const [importMsg, setImportMsg] = useState("");
+  const thumb = async (path?: string): Promise<string | undefined> => {
+    const url = fileUrl(path);
+    if (!url) return undefined;
+    try {
+      const bmp = await createImageBitmap(await (await fetch(url)).blob());
+      const w = Math.min(480, bmp.width), h = Math.round((bmp.height * w) / bmp.width);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d")!.drawImage(bmp, 0, 0, w, h);
+      return c.toDataURL("image/jpeg", 0.72);
+    } catch { return undefined; }
+  };
+  const download = (name: string, text: string, type = "text/html") => {
+    const u = URL.createObjectURL(new Blob([text], { type })); const a = document.createElement("a");
+    a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u);
+  };
+  const buildPage = async () => {
+    setBusy(true);
+    const photos: GalleryPhoto[] = [];
+    for (const a of pool) photos.push({ base: a.base, color: a.color, src: await thumb(a.thumbPath) });
+    const g = p.gallery ?? form;
+    download(`chon-anh-${slug(p.name) || p.id}.html`, galleryHtml({ id: p.id, title: p.name, studio: d.settings.studioName, limit: g.limit, expires: g.expires, password: g.password, photos, contactEmail: "" }));
+    actions.updateProject(p.id, { gallery: { ...form, ...p.gallery, sentAt: p.gallery?.sentAt ?? today() } });
+    actions.logActivity(p.id, `Tạo trang chọn ảnh cho khách (${photos.length} ảnh)`);
+    setBusy(false);
+  };
+  const applyPick = () => {
+    const { names: got } = parsePick(pasted);
+    if (!got.length) return setImportMsg("Không đọc được tên ảnh nào. Dán nguyên đoạn khách gửi.");
+    const want = new Set(got.map((x) => x.toLowerCase()));
+    const found = new Set<string>();
+    pool.forEach((a) => { const on = want.has(a.base.toLowerCase()); if (on) found.add(a.base.toLowerCase()); if (a.picked !== on) actions.updateAsset(a.id, { picked: on }); });
+    const missing = got.filter((x) => !found.has(x.toLowerCase()));
+    actions.updateProject(p.id, { gallery: { ...form, ...p.gallery, submittedAt: today() } });
+    actions.logActivity(p.id, `Nhập lựa chọn của khách: ${found.size} ảnh`);
+    setImportMsg(`Đã đánh dấu ${found.size} ảnh khách chọn.` + (missing.length ? ` Không tìm thấy trong dự án: ${missing.slice(0, 12).join(", ")}${missing.length > 12 ? "…" : ""}` : ""));
+    setPasted("");
+  };
+  const rawList = picked.map((a) => a.rawPath ?? a.jpgPath ?? a.base);
 
   if (mode === "client") {
     const a = viewing !== null ? shown[viewing] : null;
@@ -176,6 +220,18 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
             </p>
           </section>
 
+          <section className="card pad" aria-label="Trang chọn ảnh cho khách">
+            <h2 className="card-title">Trang chọn ảnh cho khách</h2>
+            <p className="f-hint">Tạo một file .html có ảnh xem trước, thả tim, giới hạn {limit} ảnh và mật khẩu. Đưa file lên Vercel (hoặc Netlify Drop) để có link gửi khách; khách chọn xong bấm "Gửi lựa chọn" để gửi đoạn mã lại cho bạn qua LINE, Zalo hay email. Mật khẩu chỉ ngăn người lạ vô tình mở, không phải bảo mật cao.</p>
+            <div className="toolbar"><button className="btn tinted sm" onClick={buildPage} disabled={busy || pool.length === 0}><Icon name="download" size={16} />{busy ? "Đang tạo…" : "Tạo trang (.html)"}</button></div>
+            {!isDesktop ? <p className="f-hint">Bản web không có ảnh xem trước thật, trang sẽ hiện ô màu. Dùng bản app để nhúng ảnh.</p> : null}
+            <Field label="Khách gửi lại lựa chọn" hint="Dán đoạn mã khách gửi (dòng đầu STUDIO-PICK|… rồi các tên ảnh)">
+              <textarea className="textarea" rows={3} value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder="STUDIO-PICK|…" />
+            </Field>
+            <div className="toolbar"><button className="btn primary sm" onClick={applyPick} disabled={!pasted.trim()}>Áp dụng lựa chọn</button></div>
+            {importMsg ? <small className="success" role="status">{importMsg}</small> : null}
+          </section>
+
           <section className="card list" aria-label="Trạng thái">
             <div className="kv"><span>Trạng thái</span><span>{submitted ? `Khách đã gửi ${fmtDate(p.gallery!.submittedAt!)}` : p.gallery?.sentAt ? `Đã mời ${fmtDate(p.gallery.sentAt)}` : p.gallery ? "Chưa gửi" : "Chưa tạo"}</span></div>
             <div className="kv"><span>Đã chọn</span><span>{picked.length} / {limit} ảnh</span></div>
@@ -203,6 +259,8 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
                 <div className="toolbar">
                   <button className="chip-btn" onClick={() => copy(names.join(", "), "Đã chép danh sách tên")}><Icon name="copy" size={16} />Chép tên file</button>
                   <button className="chip-btn" onClick={() => copy(names.join(" "), "Đã chép cho Lightroom")}><Icon name="copy" size={16} />Chép cho Lightroom</button>
+                  <button className="chip-btn" onClick={() => copy(rawList.join("\n"), "Đã chép đường dẫn RAW")}><Icon name="copy" size={16} />Chép đường dẫn RAW</button>
+                  <button className="chip-btn" onClick={() => download(`${slug(p.name) || p.id}-raw-can-chinh.txt`, rawList.join("\n"), "text/plain")}><Icon name="download" size={16} />Tải danh sách RAW</button>
                   <button className="chip-btn" onClick={() => {
                     const blob = new Blob([["Tên file", ...names].join("\n")], { type: "text/csv" });
                     const url = URL.createObjectURL(blob); const link = document.createElement("a");
@@ -210,7 +268,7 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
                   }}><Icon name="download" size={16} />Tải CSV</button>
                 </div>
                 {copied ? <small className="success" role="status">{copied}</small> : null}
-                <p className="f-hint">Trong Lightroom: Library → Filter → Text → Filename → Contains, dán danh sách vừa chép để lọc đúng các ảnh khách chọn.</p>
+                <p className="f-hint">Chỉnh RAW: dùng "Tải danh sách RAW" để lấy đúng các file RAW khách chọn (hoặc dán tên vào ô lọc tên file của Capture One / Lightroom). Trong Lightroom: Library → Filter → Text → Filename → Contains, dán danh sách vừa chép để lọc đúng các ảnh khách chọn.</p>
               </>
             ) : <p className="f-hint">Khách chưa chọn ảnh nào.</p>}
           </section>
