@@ -58,3 +58,12 @@ pub async fn c1_process(recipe: String) -> Result<String, String> {
 pub async fn c1_dictionary() -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(ops_core::c1_dictionary).await.map_err(|e| e.to_string())?
 }
+
+#[tauri::command]
+pub async fn drive_folder() -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(|| Ok(ops_core::drive_folder())).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn read_text_file(path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || ops_core::read_text_file(&path)).await.map_err(|e| e.to_string())?
+}

@@ -72,3 +72,12 @@ export const c1Status = () => invoke<string>("c1_status");
 export const c1Open = (path: string) => invoke<string>("c1_open", { path });
 export const c1Process = (recipe: string) => invoke<string>("c1_process", { recipe });
 export const c1Dictionary = () => invoke<string>("c1_dictionary");
+
+// Pick several files with the system dialog, optionally starting in Google Drive for desktop.
+export async function pickFiles(title: string, extensions: string[], defaultPath?: string): Promise<string[]> {
+  if (!isDesktop) return [];
+  const r = await open({ multiple: true, directory: false, title, defaultPath, filters: [{ name: extensions.join(", "), extensions }] });
+  return Array.isArray(r) ? r : typeof r === "string" ? [r] : [];
+}
+export const driveFolder = () => invoke<string | null>("drive_folder");
+export const readTextFile = (path: string) => invoke<string>("read_text_file", { path });

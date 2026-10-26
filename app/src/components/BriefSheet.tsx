@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Field, Sheet } from "./Sheet";
+import { driveFolder, isDesktop, pickFiles, readTextFile } from "../native";
 import { briefHtml } from "../briefPage";
 import { publishPage } from "../pickServer";
 import { emptyBrief, getOps, opsActions, ROUTE_KIND, useOps, type Brief, type OpsEvent, type RouteKind } from "../opsStore";
@@ -29,11 +30,24 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
   const [preview, setPreview] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
 
-  const addGpx = async (list: FileList | null) => {
-    if (!list) return;
-    for (const f of Array.from(list)) {
+  const [wantPreview, setWantPreview] = useState(false);
+  type Src = { name: string; text: () => Promise<string> };
+  const fromList = (list: FileList | null): Src[] => (list ? Array.from(list).map((f) => ({ name: f.name, text: () => f.text() })) : []);
+  // Pick from Google Drive for desktop (or any folder) with the system dialog; no browser upload needed.
+  const pickFromDrive = async () => {
+    try {
+      const start = (await driveFolder()) ?? undefined;
+      const paths = await pickFiles("Chọn tệp GPX (Google Drive)", ["gpx"], start);
+      if (!paths.length) return setMsg(start ? "Chưa chọn tệp nào." : "Chưa chọn tệp nào. Máy này chưa cài Google Drive cho máy tính, hãy tải GPX về hoặc cài Drive for desktop.");
+      await addGpx(paths.map((p) => ({ name: p.split(/[\\/]/).pop() ?? p, text: () => readTextFile(p) })));
+    } catch (e) { setMsg(typeof e === "string" ? e : (e as Error).message); }
+  };
+  const addGpx = async (list: Src[]) => {
+    let got = 0;
+    for (const f of list) {
       try {
         const g = parseGpx(await f.text(), f.name.replace(/\.gpx$/i, ""));
+        got++;
         const lower = (g.name + " " + f.name).toLowerCase();
         const kind: RouteKind = /bike|cycl|ride|đạp|xe/.test(lower) ? "bike" : /run|chạy/.test(lower) ? "run" : /swim|bơi/.test(lower) ? "swim" : "other";
         if (g.points.length) setB((x) => ({ ...x, routes: [...x.routes, { id: uid(), name: g.name, kind, distanceKm: g.distanceKm, ascentM: g.ascentM, descentM: g.descentM, points: g.points }] }));
@@ -49,9 +63,11 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
         const parts = [g.points.length ? `${g.distanceKm.toFixed(1)} km, ${g.rawPoints.toLocaleString("vi-VN")} điểm` : "không có đường đi"];
         if (g.waypoints.length) parts.push(`${g.waypoints.length} checkpoint, thêm ${added} điểm chụp mới`);
         setMsg(`Đã đọc ${f.name}: ${parts.join(", ")}.`);
-      } catch (e) { setMsg(`${f.name}: ${(e as Error).message}`); }
+      } catch (e) { setMsg(`${f.name}: ${typeof e === "string" ? e : (e as Error).message}`); }
     }
+    if (got) setWantPreview(true); // show the map with the new checkpoints right away
   };
+  useEffect(() => { if (wantPreview) { setPreview(html()); setWantPreview(false); } }); // eslint-disable-line react-hooks/exhaustive-deps
   const addFiles = async (list: FileList | null) => {
     if (!list) return;
     let used = b.files.reduce((n, f) => n + (f.data?.length ?? 0), 0);
@@ -126,7 +142,8 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
               <button className="icon-mini" aria-label={`Xóa lộ trình ${r.name}`} onClick={() => setB((x) => ({ ...x, routes: x.routes.filter((y) => y.id !== r.id) }))}><Icon name="trash" size={15} /></button>
             </div>
           ))}
-          <label className="btn tinted file-btn"><Icon name="upload" size={15} />Thêm GPX…<input type="file" accept=".gpx,application/gpx+xml,text/xml" multiple hidden onChange={(e) => { addGpx(e.target.files); e.target.value = ""; }} /></label>
+          <label className="btn tinted file-btn"><Icon name="upload" size={15} />Thêm GPX…<input type="file" accept=".gpx,application/gpx+xml,text/xml" multiple hidden onChange={(e) => { void addGpx(fromList(e.target.files)); e.target.value = ""; }} /></label>
+          {isDesktop ? <button className="btn tinted file-btn" onClick={pickFromDrive}><Icon name="upload" size={15} />Chọn từ Google Drive…</button> : null}
           <small className="f-hint">App đọc quãng đường, độ cao và vẽ sơ đồ. Tệp vài MB vẫn đọc được (rút gọn còn tối đa 400 điểm). Checkpoint trong tệp sẽ thành điểm chụp có tọa độ.</small>
         </div>
         <div className="f-field">

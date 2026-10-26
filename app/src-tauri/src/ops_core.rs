@@ -394,6 +394,49 @@ pub fn c1_dictionary() -> Result<String, String> {
     Ok(lines.join("\n").chars().take(12000).collect())
 }
 
+// ---------- reading files picked from Google Drive for desktop ----------
+
+/// Where Google Drive for desktop mounts files, if it is installed (Mac: ~/Library/CloudStorage, Windows: a drive letter).
+pub fn drive_folder() -> Option<String> {
+    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
+        if let Ok(rd) = fs::read_dir(Path::new(&home).join("Library/CloudStorage")) {
+            for e in rd.filter_map(Result::ok) {
+                if e.file_name().to_string_lossy().starts_with("GoogleDrive") {
+                    let mine = e.path().join("My Drive");
+                    return Some(if mine.is_dir() { mine } else { e.path() }.to_string_lossy().to_string());
+                }
+            }
+        }
+        for d in ["Google Drive", "My Drive"] {
+            let p = Path::new(&home).join(d);
+            if p.is_dir() { return Some(p.to_string_lossy().to_string()); }
+        }
+    }
+    if cfg!(target_os = "windows") {
+        for l in b'D'..=b'Z' {
+            for sub in ["My Drive", "Drive của tôi"] {
+                let p = format!("{}:\\{}", l as char, sub);
+                if Path::new(&p).is_dir() { return Some(p); }
+            }
+        }
+    }
+    None
+}
+
+/// Read a small text file the user picked (GPX/XML). Anything else, or anything over 30 MB, is refused.
+pub fn read_text_file(path: &str) -> Result<String, String> {
+    let p = Path::new(path);
+    let ext = ext_of(p);
+    if !matches!(ext.as_str(), "gpx" | "xml" | "txt") {
+        return Err("Chỉ đọc được tệp .gpx".into());
+    }
+    let meta = fs::metadata(p).map_err(|e| format!("không đọc được tệp: {e}"))?;
+    if meta.len() > 30 * 1024 * 1024 {
+        return Err("Tệp lớn hơn 30 MB".into());
+    }
+    fs::read_to_string(p).map_err(|e| format!("không đọc được tệp (có thể chưa tải về từ Drive): {e}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -511,6 +554,17 @@ mod tests {
         assert_eq!(as_quote("x\ny"), "\"xy\"");
         assert!(c1_process("   ").is_err());
         assert!(c1_open("/no/such/file.cosessiondb").is_err());
+    }
+
+    #[test]
+    fn read_text_file_limits() {
+        let d = tmp();
+        fs::write(d.join("a.gpx"), "<gpx/>").unwrap();
+        fs::write(d.join("b.exe"), "x").unwrap();
+        assert_eq!(read_text_file(&d.join("a.gpx").to_string_lossy()).unwrap(), "<gpx/>");
+        assert!(read_text_file(&d.join("b.exe").to_string_lossy()).is_err());
+        assert!(read_text_file(&d.join("none.gpx").to_string_lossy()).is_err());
+        let _ = drive_folder();
     }
 
     #[test]

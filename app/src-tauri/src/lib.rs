@@ -29,7 +29,9 @@ pub fn run() {
             ops::c1_status,
             ops::c1_open,
             ops::c1_process,
-            ops::c1_dictionary
+            ops::c1_dictionary,
+            ops::drive_folder,
+            ops::read_text_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running Studio Manager");

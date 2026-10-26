@@ -31,7 +31,7 @@ Vận hành (13 module) làm theo nhóm, nối thật một phần:
 - Dữ liệu mẫu: seed ops có cờ `demo`; "Xóa dữ liệu mẫu" (Cài đặt vận hành hoặc Cài đặt chính) xóa cả sự kiện/spot/photographer mẫu; bản ghi đã sửa thì được giữ. Vẫn còn là giả: tin nhắn (chưa nối LINE/Zalo/Email thật), đăng nhập, xem trước đám mây, thanh toán.
 Việc dở:
 - Briefing có thể chứa mã đặt phòng, chỉ gửi link cho đội. Bản demo cũ ở project `studio-brief`.
-- Nhập các GPX trong Google Drive (15 file: 墾丁馬, 華航馬, 嘉有喜柿, ZEPRO RUN, Sun Moon Lake…): tải về rồi dùng "Thêm GPX…" (nhận nhiều file).
+- Nhập các GPX trong Google Drive (15 file: 墾丁馬, 華航馬, 嘉有喜柿, ZEPRO RUN, Sun Moon Lake…): trong app bấm "Chọn từ Google Drive…" ở BriefSheet (mở hộp thoại bắt đầu ở thư mục Drive for desktop, chọn nhiều file; sau khi đọc xong tự mở bản xem trước có checkpoint trên bản đồ). Cần cài Google Drive cho máy tính.
 - Cập nhật test Playwright cũ, build lại bản cài Windows, build .dmg cho Mac.
 - Ý tưởng sau: Cmd+K tìm kiếm, menu chuột phải, Hoàn tác khi xóa, phím tắt; backend nhỏ để app tự xuất bản briefing.
 Sau đó: backend/đồng bộ nhiều máy, tích hợp tin nhắn thật, đăng nhập thật.
