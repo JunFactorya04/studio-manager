@@ -32,7 +32,7 @@ export const emptyBrief = (): Brief => ({
   venueName: "", venueAddress: "", venueMaps: "", course: [], files: [], routes: [],
   hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [], channels: [],
 });
-export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string; brief?: Brief }
+export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string; brief?: Brief; deliveryDir?: string } // deliveryDir: where finished photos are copied for the client/organizer
 export interface Spot {
   id: string; eventId: string; name: string; captureDir: string; outputDir: string;
   c1Session: string; recipe: string; photographerId: string; status: SpotStatus;
@@ -42,9 +42,13 @@ export interface Photographer { id: string; name: string; phone: string; email: 
 export interface Job {
   id: string; eventId: string; spotId: string; file: string; status: JobStatus;
   createdAt: string; durationSec: number; error?: string; output?: string; attempts: number;
+  source?: string; size?: number; retryAt?: number; demo?: boolean; // source = full path of the received photo; retryAt = epoch ms before which the engine will not retry
 }
-export interface Delivery { id: string; jobId: string; eventId: string; spotId: string; file: string; status: DeliveryStatus; attempts: number; at: string; error?: string }
-export interface LogEntry { id: string; at: string; kind: LogKind; eventId?: string; spotId?: string; ref?: string; text: string }
+export interface Delivery { id: string; jobId: string; eventId: string; spotId: string; file: string; status: DeliveryStatus; attempts: number; at: string; error?: string; dest?: string; checksum?: string; retryAt?: number; demo?: boolean }
+export interface LogEntry { id: string; at: string; kind: LogKind; eventId?: string; spotId?: string; ref?: string; text: string; demo?: boolean }
+
+export interface EngineSettings { paused: boolean; maxAttempts: number; pollSec: number }
+export const defaultEngine = (): EngineSettings => ({ paused: false, maxAttempts: 3, pollSec: 5 });
 
 export interface AgentState {
   online: boolean; lastSeen: string; host: string; localQueue: number;
@@ -55,6 +59,7 @@ export interface OpsData {
   version: 1;
   events: OpsEvent[]; spots: Spot[]; photographers: Photographer[];
   jobs: Job[]; deliveries: Delivery[]; logs: LogEntry[]; agent: AgentState;
+  engine?: EngineSettings;
 }
 
 export const EVENT_STATUS: Record<EventStatus, [string, string]> = { draft: ["Nháp", "gray"], live: ["Đang diễn ra", "green"], done: ["Đã kết thúc", "blue"] };
@@ -125,12 +130,12 @@ function seed(): OpsData {
           id, eventId, spotId, file, status, attempts: status === "failed" ? 2 : 1,
           createdAt: at(ageDays, 8 + Math.floor(i / 12), (i * 5) % 60), durationSec: 3 + (i % 5),
           error: status === "failed" ? (i % 2 ? "Recipe không xuất được: thiếu LUT" : "Tệp RAW bị hỏng") : undefined,
-          output: status === "succeeded" ? file : undefined,
+          output: status === "succeeded" ? file : undefined, demo: true,
         };
         jobs.push(job);
         if (status === "succeeded") {
           const ds: DeliveryStatus = ageDays > 0 ? "done" : i % 7 === 0 ? "failed" : i % 5 === 0 ? "pending" : "done";
-          deliveries.push({ id: "d-" + id, jobId: id, eventId, spotId, file, status: ds, attempts: ds === "failed" ? 3 : 1, at: job.createdAt, error: ds === "failed" ? "Mất kết nối máy chủ đích (timeout)" : undefined });
+          deliveries.push({ id: "d-" + id, jobId: id, eventId, spotId, file, status: ds, attempts: ds === "failed" ? 3 : 1, at: job.createdAt, error: ds === "failed" ? "Mất kết nối máy chủ đích (timeout)" : undefined, demo: true });
         }
       }
     }
@@ -142,7 +147,7 @@ function seed(): OpsData {
   add("sp4", "ev2", 0, "MAIN", 9, [["succeeded", 40]]);
 
   const lg = (k: LogKind, text: string, hh: number, mm: number, eventId?: string, spotId?: string, ref?: string) =>
-    logs.push({ id: uid(), at: at(0, hh, mm), kind: k, text, eventId, spotId, ref });
+    logs.push({ id: uid(), at: at(0, hh, mm), kind: k, text, eventId, spotId, ref, demo: true });
   lg("config", "Cập nhật recipe cho Vạch đích", 7, 40, "ev1", "sp3");
   lg("ingest", "Nhận 28 ảnh từ Vạch xuất phát qua FTP", 9, 10, "ev1", "sp1");
   lg("process", "Capture One xuất xong 22 ảnh tại Cầu Tình Yêu", 9, 25, "ev1", "sp2");
@@ -152,7 +157,7 @@ function seed(): OpsData {
   lg("export", "Xuất 28 ảnh JPEG 2400px", 10, 12, "ev1", "sp1");
 
   return {
-    version: 1, events, spots, photographers, jobs, deliveries, logs,
+    version: 1, events, spots, photographers, jobs, deliveries, logs, engine: defaultEngine(),
     agent: { online: true, lastSeen: at(0, 10, 14), host: "STUDIO-PC-01", localQueue: 0, captureOne: "ok", ftp: "ok" },
   };
 }
@@ -162,7 +167,7 @@ let state: OpsData = load();
 const listeners = new Set<() => void>();
 
 function load(): OpsData {
-  try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw) as OpsData; if (d.version === 1) return d; } } catch { /* storage unavailable */ }
+  try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw) as OpsData; if (d.version === 1) return { ...d, engine: { ...defaultEngine(), ...d.engine } }; } } catch { /* storage unavailable */ }
   return seed();
 }
 function commit(next: OpsData) {
@@ -174,11 +179,31 @@ const subscribe = (cb: () => void) => { listeners.add(cb); return () => { listen
 export const useOps = () => useSyncExternalStore(subscribe, () => state);
 export const getOps = () => state;
 
-const logLine = (kind: LogKind, text: string, eventId?: string, spotId?: string, ref?: string): LogEntry =>
+export const logLine = (kind: LogKind, text: string, eventId?: string, spotId?: string, ref?: string): LogEntry =>
   ({ id: uid(), at: new Date().toISOString().slice(0, 19), kind, text, eventId, spotId, ref });
+
+const MAX_LOGS = 500;
+const capLogs = (l: LogEntry[]) => (l.length > MAX_LOGS ? l.slice(0, MAX_LOGS) : l);
 
 export const opsActions = {
   reset() { commit(seed()); },
+  // Remove the made-up jobs, deliveries and log lines; real ones (from the folder watcher) stay.
+  clearDemo() {
+    commit({ ...state, jobs: state.jobs.filter((j) => !j.demo), deliveries: state.deliveries.filter((d) => !d.demo), logs: state.logs.filter((l) => !l.demo) });
+  },
+  hasDemo() { return state.jobs.some((j) => j.demo) || state.deliveries.some((d) => d.demo) || state.logs.some((l) => l.demo); },
+  setEngine(patch: Partial<EngineSettings>) { commit({ ...state, engine: { ...defaultEngine(), ...state.engine, ...patch } }); },
+  // Used by the engine: one commit per batch so a big folder does not rewrite storage once per photo.
+  addJobs(jobs: Job[], note?: LogEntry) { if (jobs.length) commit({ ...state, jobs: [...state.jobs, ...jobs], logs: note ? capLogs([note, ...state.logs]) : state.logs }); },
+  patchJob(id: string, patch: Partial<Job>, note?: LogEntry) { commit({ ...state, jobs: state.jobs.map((j) => (j.id === id ? { ...j, ...patch } : j)), logs: note ? capLogs([note, ...state.logs]) : state.logs }); },
+  addDelivery(d: Delivery) { commit({ ...state, deliveries: [...state.deliveries, d] }); },
+  patchDelivery(id: string, patch: Partial<Delivery>, note?: LogEntry) { commit({ ...state, deliveries: state.deliveries.map((x) => (x.id === id ? { ...x, ...patch } : x)), logs: note ? capLogs([note, ...state.logs]) : state.logs }); },
+  // After a restart nothing is really running: put interrupted work back in the queue.
+  recoverInterrupted() {
+    if (!state.jobs.some((j) => j.status === "running") && !state.deliveries.some((d) => d.status === "uploading")) return;
+    commit({ ...state, jobs: state.jobs.map((j) => (j.status === "running" ? { ...j, status: "pending" } : j)), deliveries: state.deliveries.map((d) => (d.status === "uploading" ? { ...d, status: "pending" } : d)) });
+  },
+  removeJobs(ids: string[]) { const set = new Set(ids); commit({ ...state, jobs: state.jobs.filter((j) => !set.has(j.id)), deliveries: state.deliveries.filter((d) => !set.has(d.jobId)) }); },
   replaceAll(d: OpsData) { commit(d); },
   addEvent(e: Omit<OpsEvent, "id">) {
     const ev = { ...e, id: uid() };

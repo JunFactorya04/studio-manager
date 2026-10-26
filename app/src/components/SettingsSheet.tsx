@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Confirm, Field, Sheet } from "./Sheet";
 import { actions, getState, today, useData, type Data } from "../store";
 import { isDesktop, pickFolder } from "../native";
+import { getOps, opsActions, type OpsData } from "../opsStore";
 
 // Studio settings and data backup. All data lives on this device, so a backup file matters.
 export function SettingsSheet({ onClose }: { onClose: () => void }) {
@@ -14,17 +15,19 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const save = () => { actions.updateSettings(form); onClose(); };
 
   const backup = () => {
-    const url = URL.createObjectURL(new Blob([JSON.stringify(getState(), null, 2)], { type: "application/json" }));
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ ...getState(), ops: getOps() }, null, 2)], { type: "application/json" }));
     const a = document.createElement("a"); a.href = url; a.download = `studio-manager-backup-${today()}.json`; a.click(); URL.revokeObjectURL(url);
     setStatus("Đã tải file sao lưu.");
   };
 
   const restore = async (file: File) => {
     try {
-      const data = JSON.parse(await file.text()) as Data;
+      const data = JSON.parse(await file.text()) as Data & { ops?: OpsData };
       if (data.version !== 1 || !Array.isArray(data.projects)) throw new Error("bad");
-      actions.replaceAll(data);
-      setForm(data.settings);
+      const { ops, ...main } = data;
+      actions.replaceAll(main as Data);
+      if (ops?.version === 1) opsActions.replaceAll(ops);
+      setForm(main.settings);
       setStatus(`Đã khôi phục ${data.projects.length} dự án.`);
     } catch {
       setStatus("File không đúng định dạng sao lưu của Studio Manager.");
@@ -48,7 +51,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
 
       <div className="card list">
         <div className="toggle-row">
-          <span><strong>Sao lưu dữ liệu</strong><small>Dự án, khách, hóa đơn, tin nhắn. Ảnh gốc nằm trên NAS, không nằm trong file này.</small></span>
+          <span><strong>Sao lưu dữ liệu</strong><small>Dự án, khách, hóa đơn, tin nhắn, sự kiện và hàng đợi vận hành. Ảnh gốc nằm trên NAS, không nằm trong file này.</small></span>
           <button className="chip-btn" onClick={backup}>Tải về</button>
         </div>
         <div className="toggle-row">

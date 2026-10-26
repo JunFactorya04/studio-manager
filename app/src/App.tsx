@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "./components/Icon";
 import { NAV, OPS_NAV, type Route } from "./nav";
 import { STAGES, initials, useData } from "./store";
@@ -13,6 +13,8 @@ import { Calendar } from "./views/Calendar";
 import { Login } from "./views/Login";
 import { More } from "./views/More";
 import { OpsOverview } from "./views/OpsOverview";
+import { Delivery, Ingest, Queue } from "./views/OpsPipeline";
+import { startEngine } from "./opsEngine";
 import { Events } from "./views/Events";
 import { WindowControls } from "./components/WindowControls";
 import { SettingsSheet } from "./components/SettingsSheet";
@@ -27,6 +29,7 @@ export default function App() {
   const [signedIn, setSignedIn] = useState(false);
   const [route, setRoute] = useState<Route>({ view: "dashboard" });
   const [settings, setSettings] = useState(false);
+  useEffect(() => { if (signedIn) startEngine(); }, [signedIn]);
   if (!signedIn) return <Login onLogin={() => setSignedIn(true)} />;
 
   const go = (r: Route) => {
@@ -54,6 +57,9 @@ export default function App() {
   else if (route.view === "finance") screen = <Finance go={go} />;
   else if (route.view === "more") screen = <More go={go} openSettings={() => setSettings(true)} />;
   else if (route.view === "ops") screen = <OpsOverview go={go} />;
+  else if (route.view === "ingest") screen = <Ingest go={go} />;
+  else if (route.view === "queue") screen = <Queue go={go} />;
+  else if (route.view === "delivery") screen = <Delivery go={go} />;
   else if (route.view === "events") screen = <Events key={route.eventId ?? ""} go={go} route={route} />;
   else screen = <Dashboard go={go} />;
 

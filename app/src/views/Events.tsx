@@ -123,7 +123,7 @@ export function Events({ go, route }: { go: Go; route?: Route }) {
 }
 
 function EventForm({ event, onClose, onSaved }: { event?: OpsEvent; onClose: () => void; onSaved: (id: string) => void }) {
-  const [f, setF] = useState({ name: event?.name ?? "", date: event?.date ?? today(), endDate: event?.endDate ?? event?.date ?? today(), venue: event?.venue ?? "", status: (event?.status ?? "draft") as EventStatus, note: event?.note ?? "" });
+  const [f, setF] = useState({ name: event?.name ?? "", date: event?.date ?? today(), endDate: event?.endDate ?? event?.date ?? today(), venue: event?.venue ?? "", status: (event?.status ?? "draft") as EventStatus, note: event?.note ?? "", deliveryDir: event?.deliveryDir ?? "" });
   const [err, setErr] = useState("");
   const save = () => {
     if (!f.name.trim()) return setErr("Nhập tên sự kiện.");
@@ -144,6 +144,12 @@ function EventForm({ event, onClose, onSaved }: { event?: OpsEvent; onClose: () 
         <select className="select" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as EventStatus })}>
           {(Object.keys(EVENT_STATUS) as EventStatus[]).map((s) => <option key={s} value={s}>{EVENT_STATUS[s][0]}</option>)}
         </select>
+      </Field>
+      <Field label="Thư mục giao ảnh" hint="Ảnh đã xử lý tự chép vào đây theo từng điểm chụp (NAS, ổ chia sẻ cho ban tổ chức). Để trống nếu chưa giao.">
+        <div className="path-pick">
+          <input className="input" value={f.deliveryDir} onChange={(e) => setF({ ...f, deliveryDir: e.target.value })} placeholder="/Volumes/NAS/Giao-anh" />
+          {isDesktop ? <button className="chip-btn" onClick={async () => { const p = await pickFolder("Thư mục giao ảnh"); if (p) setF((x) => ({ ...x, deliveryDir: p })); }}>Chọn</button> : null}
+        </div>
       </Field>
       <Field label="Ghi chú"><textarea className="textarea" rows={2} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
     </Sheet>

@@ -24,7 +24,8 @@ Theo skill `apple-ui-standard` (token, macOS/iOS, 26px control, chạm ≥44px t
 Xong theo kiểu macOS: khung cửa sổ, Dashboard, Lịch, Dự án, Thư viện, Tin nhắn 3 cột, Tài chính dạng bảng, audit điện thoại.
 Vận hành (13 module) làm theo nhóm, nối thật một phần:
 - Nhóm 1 xong: 01 Tổng quan, 02 Sự kiện & Spot (gồm trang briefing cho photographer: GPX, PDF/ảnh đính kèm, sơ đồ lộ trình, lịch trình, checklist, kênh liên lạc, thêm vào lịch).
-- Còn: Nhóm 2 (05 FTP, 06 hàng đợi xử lý ảnh, 07 giao ảnh), Nhóm 3 (03 Capture One, 04 Studio Agent), Nhóm 4 (08 ảnh bảo vệ/marketing, 09 booking, 10 photographer, 11 báo cáo + CSV, 12 nhật ký, 13 cài đặt). Đưa dữ liệu vận hành vào Sao lưu/Khôi phục.
+- Nhóm 2 xong (chạy thật, chỉ trong app desktop): 05 Nhận ảnh (theo dõi thư mục chụp của spot thuộc sự kiện "Đang diễn ra"), 06 Xử lý ảnh (thu nhỏ JPG theo recipe "…2400px" → thư mục xuất; tự thử lại 3 lần; tạm dừng/thử lại), 07 Giao ảnh (chép có SHA-256 vào `deliveryDir` của sự kiện/<tên spot>). Engine: `app/src/opsEngine.ts`; lệnh Rust: `ops_core.rs` (có cargo test) + `ops.rs`; view `views/OpsPipeline.tsx`. RAW chỉ được đếm (chờ Nhóm 3 Capture One). Dữ liệu vận hành đã nằm trong Sao lưu/Khôi phục. Seed cũ có cờ `demo`, nút "Xóa dữ liệu mẫu".
+- Còn: Nhóm 3 (03 Capture One, 04 Studio Agent), Nhóm 4 (08 ảnh bảo vệ/marketing, 09 booking, 10 photographer, 11 báo cáo + CSV, 12 nhật ký, 13 cài đặt). Đưa dữ liệu vận hành vào Sao lưu/Khôi phục.
 Việc dở:
 - Đưa trang briefing lên Vercel (team geopix, project `studio-brief`, ssoProtection null): chờ người dùng duyệt quyền (`authorize_team_access`), dùng dữ liệu mẫu trước. Briefing có thể chứa mã đặt phòng, chỉ gửi link cho đội.
 - Nhập các GPX trong Google Drive (15 file: 墾丁馬, 華航馬, 嘉有喜柿, ZEPRO RUN, Sun Moon Lake…): tải về rồi dùng "Thêm GPX…" (nhận nhiều file).

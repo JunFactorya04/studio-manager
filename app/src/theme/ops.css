@@ -32,3 +32,8 @@
 .route-row .input { flex: 1; min-width: 0; }
 .route-row .select { width: auto; }
 .file-btn { align-self: flex-start; cursor: pointer; }
+.card.engine-bar { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; flex-wrap: wrap; text-align: left; }
+.engine-bar .row-main { flex: 1; min-width: 200px; }
+.filter-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.chip-btn.on { background: var(--accent, #007aff); color: #fff; }
+.ops-page .row .chip-btn { flex: none; }

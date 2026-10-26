@@ -1,6 +1,6 @@
 import type { IconName } from "./components/Icon";
 
-export type View = "dashboard" | "calendar" | "projects" | "library" | "inbox" | "finance" | "more" | "ops" | "events";
+export type View = "dashboard" | "calendar" | "projects" | "library" | "inbox" | "finance" | "more" | "ops" | "events" | "ingest" | "queue" | "delivery";
 
 export interface Route {
   view: View;
@@ -27,4 +27,7 @@ export const NAV: { view: View; label: string; short: string; icon: IconName; mo
 export const OPS_NAV: { view: View; label: string; short: string; icon: IconName }[] = [
   { view: "ops", label: "Tổng quan vận hành", short: "Vận hành", icon: "bolt" },
   { view: "events", label: "Sự kiện & Spot", short: "Sự kiện", icon: "flag" },
+  { view: "ingest", label: "Nhận ảnh", short: "Nhận ảnh", icon: "download" },
+  { view: "queue", label: "Xử lý ảnh", short: "Xử lý", icon: "refresh" },
+  { view: "delivery", label: "Giao ảnh", short: "Giao ảnh", icon: "send" },
 ];

@@ -46,3 +46,15 @@ export const slug = (s: string) =>
 
 export const fmtBytes = (n: number) =>
   n >= 1e12 ? (n / 1e12).toFixed(2) + " TB" : n >= 1e9 ? (n / 1e9).toFixed(1) + " GB" : n >= 1e6 ? (n / 1e6).toFixed(0) + " MB" : Math.round(n / 1e3) + " KB";
+
+// ---------- operations (folder watcher, resize, delivery) ----------
+export interface CaptureFile { path: string; name: string; size: number; modifiedMs: number; raw: boolean }
+export interface DirScan { dir: string; ok: boolean; error?: string | null; files: CaptureFile[] }
+export interface Processed { output: string; width: number; height: number; bytes: number }
+export interface Delivered { dest: string; bytes: number; checksum: string; skipped: boolean }
+export interface DirCheck { exists: boolean; writable: boolean }
+
+export const scanCapture = (dirs: string[]) => invoke<DirScan[]>("scan_capture", { dirs });
+export const processImage = (src: string, outDir: string, longEdge: number, quality = 90) => invoke<Processed>("process_image", { src, outDir, longEdge, quality });
+export const deliverFile = (src: string, destDir: string, sub: string) => invoke<Delivered>("deliver_file", { src, destDir, sub });
+export const checkDir = (path: string) => invoke<DirCheck>("check_dir", { path });
