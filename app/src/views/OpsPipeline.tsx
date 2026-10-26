@@ -103,6 +103,7 @@ export function Queue({ go }: { go: Go }) {
               </span>
               <span className={"badge tone-" + JOB_STATUS[j.status][1]}>{JOB_STATUS[j.status][0]}</span>
               {real && (j.status === "failed" || j.status === "paused") ? <button className="chip-btn" onClick={() => (j.status === "paused" ? resumeJob(j.id) : retryJob(j.id))}>{j.status === "paused" ? "Tiếp tục" : "Thử lại"}</button> : null}
+              {real && j.status === "succeeded" ? <button className={"chip-btn" + (j.keep ? " on" : "")} onClick={() => opsActions.setJobKeep(j.id, j.keep === "lock" ? "marketing" : j.keep ? undefined : "lock")}>{j.keep === "lock" ? "Đã khóa" : j.keep === "marketing" ? "Marketing" : "Khóa ảnh"}</button> : null}
               {real && j.status === "pending" ? <button className="chip-btn" onClick={() => pauseJob(j.id)}>Tạm dừng</button> : null}
             </div>
           );

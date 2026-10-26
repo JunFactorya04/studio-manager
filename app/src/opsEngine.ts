@@ -82,7 +82,7 @@ async function runJob(id: string) {
   opsActions.patchJob(id, { status: "running", error: undefined });
   try {
     if (!spot?.outputDir.trim()) throw new Error("Điểm chụp chưa đặt thư mục ảnh xuất");
-    const r = await processImage(job.source, spot.outputDir.trim(), longEdgeOf(spot.recipe), 90);
+    const r = await processImage(job.source, spot.outputDir.trim(), longEdgeOf(spot.recipe), o.engine?.quality ?? 90);
     const secs = Math.max(1, Math.round((Date.now() - t0) / 1000));
     opsActions.patchJob(id, { status: "succeeded", output: r.output, durationSec: secs, attempts: job.attempts + 1, retryAt: undefined, error: undefined }, logLine("export", `Xuất ${job.file} (${r.width}×${r.height})`, job.eventId, job.spotId, id));
     const ev = getOps().events.find((e) => e.id === job.eventId);

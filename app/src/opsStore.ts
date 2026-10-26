@@ -42,13 +42,17 @@ export interface Photographer { id: string; name: string; phone: string; email: 
 export interface Job {
   id: string; eventId: string; spotId: string; file: string; status: JobStatus;
   createdAt: string; durationSec: number; error?: string; output?: string; attempts: number;
+  keep?: "lock" | "marketing"; // 08: protected best shots / marketing picks
   source?: string; size?: number; retryAt?: number; demo?: boolean; // source = full path of the received photo; retryAt = epoch ms before which the engine will not retry
 }
 export interface Delivery { id: string; jobId: string; eventId: string; spotId: string; file: string; status: DeliveryStatus; attempts: number; at: string; error?: string; dest?: string; checksum?: string; retryAt?: number; demo?: boolean }
 export interface LogEntry { id: string; at: string; kind: LogKind; eventId?: string; spotId?: string; ref?: string; text: string; demo?: boolean }
 
-export interface EngineSettings { paused: boolean; maxAttempts: number; pollSec: number }
-export const defaultEngine = (): EngineSettings => ({ paused: false, maxAttempts: 3, pollSec: 5 });
+export interface EngineSettings { paused: boolean; maxAttempts: number; pollSec: number; quality: number; keepTarget: number }
+export const defaultEngine = (): EngineSettings => ({ paused: false, maxAttempts: 3, pollSec: 5, quality: 90, keepTarget: 20 });
+export type BookingStatus = "new" | "confirmed" | "declined";
+export interface Booking { id: string; name: string; contact: string; date: string; time: string; type: string; status: BookingStatus; note: string; projectId?: string; createdAt: string }
+export const BOOKING_STATUS: Record<BookingStatus, [string, string]> = { new: ["Mới", "blue"], confirmed: ["Đã nhận", "green"], declined: ["Từ chối", "gray"] };
 
 export interface AgentState {
   os?: string; real?: boolean; // real = filled in by this app, not sample data
@@ -61,6 +65,7 @@ export interface OpsData {
   events: OpsEvent[]; spots: Spot[]; photographers: Photographer[];
   jobs: Job[]; deliveries: Delivery[]; logs: LogEntry[]; agent: AgentState;
   engine?: EngineSettings;
+  bookings?: Booking[];
 }
 
 export const EVENT_STATUS: Record<EventStatus, [string, string]> = { draft: ["Nháp", "gray"], live: ["Đang diễn ra", "green"], done: ["Đã kết thúc", "blue"] };
@@ -193,6 +198,13 @@ export const opsActions = {
     commit({ ...state, jobs: state.jobs.filter((j) => !j.demo), deliveries: state.deliveries.filter((d) => !d.demo), logs: state.logs.filter((l) => !l.demo) });
   },
   hasDemo() { return state.jobs.some((j) => j.demo) || state.deliveries.some((d) => d.demo) || state.logs.some((l) => l.demo); },
+  setJobKeep(id: string, keep?: "lock" | "marketing") { commit({ ...state, jobs: state.jobs.map((j) => (j.id === id ? { ...j, keep } : j)) }); },
+  addPhotographer(p: Omit<Photographer, "id">) { commit({ ...state, photographers: [...state.photographers, { ...p, id: uid() }], logs: capLogs([logLine("config", `Thêm photographer ${p.name}`), ...state.logs]) }); },
+  updatePhotographer(id: string, patch: Partial<Photographer>) { commit({ ...state, photographers: state.photographers.map((p) => (p.id === id ? { ...p, ...patch } : p)) }); },
+  deletePhotographer(id: string) { commit({ ...state, photographers: state.photographers.filter((p) => p.id !== id), spots: state.spots.map((s) => (s.photographerId === id ? { ...s, photographerId: "" } : s)) }); },
+  addBooking(b: Omit<Booking, "id" | "createdAt">) { const nb = { ...b, id: uid(), createdAt: today() }; commit({ ...state, bookings: [nb, ...(state.bookings ?? [])], logs: capLogs([logLine("config", `Booking mới: ${b.name}`), ...state.logs]) }); return nb; },
+  updateBooking(id: string, patch: Partial<Booking>) { commit({ ...state, bookings: (state.bookings ?? []).map((b) => (b.id === id ? { ...b, ...patch } : b)) }); },
+  deleteBooking(id: string) { commit({ ...state, bookings: (state.bookings ?? []).filter((b) => b.id !== id) }); },
   setAgent(patch: Partial<AgentState>) { commit({ ...state, agent: { ...state.agent, ...patch } }); },
   setEngine(patch: Partial<EngineSettings>) { commit({ ...state, engine: { ...defaultEngine(), ...state.engine, ...patch } }); },
   // Used by the engine: one commit per batch so a big folder does not rewrite storage once per photo.
@@ -205,7 +217,7 @@ export const opsActions = {
     if (!state.jobs.some((j) => j.status === "running") && !state.deliveries.some((d) => d.status === "uploading")) return;
     commit({ ...state, jobs: state.jobs.map((j) => (j.status === "running" ? { ...j, status: "pending" } : j)), deliveries: state.deliveries.map((d) => (d.status === "uploading" ? { ...d, status: "pending" } : d)) });
   },
-  removeJobs(ids: string[]) { const set = new Set(ids); commit({ ...state, jobs: state.jobs.filter((j) => !set.has(j.id)), deliveries: state.deliveries.filter((d) => !set.has(d.jobId)) }); },
+  removeJobs(ids: string[]) { const set = new Set(ids.filter((i) => !state.jobs.find((j) => j.id === i)?.keep)); commit({ ...state, jobs: state.jobs.filter((j) => !set.has(j.id)), deliveries: state.deliveries.filter((d) => !set.has(d.jobId)) }); },
   replaceAll(d: OpsData) { commit(d); },
   addEvent(e: Omit<OpsEvent, "id">) {
     const ev = { ...e, id: uid() };

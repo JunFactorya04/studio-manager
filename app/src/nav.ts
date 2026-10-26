@@ -1,6 +1,6 @@
 import type { IconName } from "./components/Icon";
 
-export type View = "dashboard" | "calendar" | "projects" | "library" | "inbox" | "finance" | "more" | "ops" | "events" | "ingest" | "queue" | "delivery" | "c1" | "agent";
+export type View = "dashboard" | "calendar" | "projects" | "library" | "inbox" | "finance" | "more" | "ops" | "events" | "ingest" | "queue" | "delivery" | "c1" | "agent" | "select" | "booking" | "crew" | "report" | "logs" | "opsset";
 
 export interface Route {
   view: View;
@@ -32,4 +32,10 @@ export const OPS_NAV: { view: View; label: string; short: string; icon: IconName
   { view: "delivery", label: "Giao ảnh", short: "Giao ảnh", icon: "send" },
   { view: "c1", label: "Capture One", short: "Capture One", icon: "photo" },
   { view: "agent", label: "Studio Agent", short: "Agent", icon: "settings" },
+  { view: "select", label: "Ảnh chọn lọc", short: "Chọn lọc", icon: "heart" },
+  { view: "booking", label: "Booking", short: "Booking", icon: "calendar" },
+  { view: "crew", label: "Photographer", short: "Photographer", icon: "message" },
+  { view: "report", label: "Báo cáo", short: "Báo cáo", icon: "chart" },
+  { view: "logs", label: "Nhật ký", short: "Nhật ký", icon: "alert" },
+  { view: "opsset", label: "Cài đặt vận hành", short: "Cài đặt VH", icon: "settings" },
 ];
