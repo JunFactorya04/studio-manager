@@ -2,13 +2,13 @@
 // SHA-256 verification, and write small JPEG thumbnails for the library grid.
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs::{self, File};
-use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter};
 use walkdir::WalkDir;
+
+use crate::ops_core::{copy_verified, sha256_file};
 
 const RAW_EXT: &[&str] = &["cr2", "cr3", "nef", "nrw", "arw", "srf", "raf", "dng", "orf", "rw2", "pef", "srw", "3fr", "iiq"];
 const JPG_EXT: &[&str] = &["jpg", "jpeg"];
@@ -133,42 +133,6 @@ struct Progress {
     total: usize,
     file: String,
     bytes_done: u64,
-}
-
-fn sha256_file(path: &Path) -> std::io::Result<String> {
-    let mut reader = BufReader::with_capacity(1 << 20, File::open(path)?);
-    let mut hasher = Sha256::new();
-    let mut buf = vec![0u8; 1 << 20];
-    loop {
-        let n = reader.read(&mut buf)?;
-        if n == 0 {
-            break;
-        }
-        hasher.update(&buf[..n]);
-    }
-    Ok(hex::encode(hasher.finalize()))
-}
-
-/// Copy one file and confirm the copy hashes the same as the source.
-/// If an identical file is already there, skip it (returns skipped = true).
-fn copy_verified(src: &Path, dst: &Path) -> Result<(String, bool), String> {
-    let src_hash = sha256_file(src).map_err(|e| format!("đọc thẻ lỗi: {e}"))?;
-    if dst.exists() {
-        let existing = sha256_file(dst).map_err(|e| format!("đọc NAS lỗi: {e}"))?;
-        if existing == src_hash {
-            return Ok((src_hash, true));
-        }
-        return Err("trùng tên nhưng khác nội dung, không ghi đè".into());
-    }
-    let tmp = dst.with_extension("part");
-    fs::copy(src, &tmp).map_err(|e| format!("chép lỗi: {e}"))?;
-    let dst_hash = sha256_file(&tmp).map_err(|e| format!("kiểm tra lỗi: {e}"))?;
-    if dst_hash != src_hash {
-        let _ = fs::remove_file(&tmp);
-        return Err("checksum không khớp sau khi chép".into());
-    }
-    fs::rename(&tmp, dst).map_err(|e| format!("đổi tên lỗi: {e}"))?;
-    Ok((src_hash, false))
 }
 
 fn make_thumb(jpg: &Path, out: &Path) -> Result<(), String> {

@@ -1,6 +1,8 @@
 // Entry point shared by desktop (main.rs) and mobile builds.
 
 mod media;
+mod ops;
+mod ops_core;
 
 #[tauri::command]
 fn app_version() -> String {
@@ -15,7 +17,11 @@ pub fn run() {
             app_version,
             media::scan_source,
             media::import_items,
-            media::folder_size
+            media::folder_size,
+            ops::scan_capture,
+            ops::process_image,
+            ops::deliver_file,
+            ops::check_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running Studio Manager");
