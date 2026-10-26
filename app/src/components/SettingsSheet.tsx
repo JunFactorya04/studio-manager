@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Confirm, Field, Sheet } from "./Sheet";
 import { actions, getState, today, useData, type Data } from "../store";
 import { isDesktop, pickFolder } from "../native";
+import { getPickServer, setPickServer, DEFAULT_PICK_URL } from "../pickServer";
 import { getOps, opsActions, type OpsData } from "../opsStore";
 
 // Studio settings and data backup. All data lives on this device, so a backup file matters.
@@ -10,9 +11,10 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const [form, setForm] = useState(d.settings);
   const [confirm, setConfirm] = useState<"demo" | "empty" | null>(null);
   const [status, setStatus] = useState("");
+  const [ps, setPs] = useState(getPickServer());
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const save = () => { actions.updateSettings(form); onClose(); };
+  const save = () => { actions.updateSettings(form); setPickServer(ps); onClose(); };
 
   const backup = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ ...getState(), ops: getOps() }, null, 2)], { type: "application/json" }));
@@ -49,6 +51,11 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         <input className="input" value={form.renamePattern} onChange={(e) => setForm({ ...form, renamePattern: e.target.value })} />
       </Field>
 
+      <Field label="Máy chủ chọn ảnh" hint="Địa chỉ máy chủ nhận ảnh khách chọn. Khóa chỉ lưu trên máy này, không nằm trong file sao lưu.">
+        <input className="input" value={ps.url} onChange={(e) => setPs({ ...ps, url: e.target.value })} placeholder={DEFAULT_PICK_URL} />
+      </Field>
+      <Field label="Khóa studio"><input className="input" type="password" autoComplete="off" value={ps.key} onChange={(e) => setPs({ ...ps, key: e.target.value })} /></Field>
+
       <div className="card list">
         <div className="toggle-row">
           <span><strong>Sao lưu dữ liệu</strong><small>Dự án, khách, hóa đơn, tin nhắn, sự kiện và hàng đợi vận hành. Ảnh gốc nằm trên NAS, không nằm trong file này.</small></span>
@@ -75,7 +82,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           title={confirm === "empty" ? "Xóa dữ liệu mẫu" : "Nạp dữ liệu mẫu"}
           text={confirm === "empty" ? "Xóa mọi dự án, khách, hóa đơn và tin nhắn trong app để bắt đầu dùng thật? Nên tải bản sao lưu trước." : "Thay dữ liệu hiện tại bằng dữ liệu mẫu? Nên tải bản sao lưu trước."}
           confirmLabel={confirm === "empty" ? "Xóa" : "Nạp"}
-          onConfirm={() => { if (confirm === "empty") actions.clearAll(); else actions.reset(); setStatus(confirm === "empty" ? "Đã xóa dữ liệu mẫu." : "Đã nạp dữ liệu mẫu."); }}
+          onConfirm={() => { if (confirm === "empty") { actions.clearAll(); opsActions.clearDemo(); } else actions.reset(); setStatus(confirm === "empty" ? "Đã xóa dữ liệu mẫu." : "Đã nạp dữ liệu mẫu."); }}
           onClose={() => setConfirm(null)}
         />
       ) : null}

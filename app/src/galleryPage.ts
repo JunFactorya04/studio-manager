@@ -6,6 +6,7 @@ export interface GalleryPhoto { base: string; src?: string; color?: string }
 export interface GalleryOpts {
   id: string; title: string; studio: string; limit: number; expires: string; password: string;
   photos: GalleryPhoto[]; note?: string; contactEmail?: string;
+  api?: string; // base URL of the studio server; when set, picks are also sent there automatically
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -14,7 +15,7 @@ const js = (v: unknown) => JSON.stringify(v).replace(/</g, "\\u003c").replace(/[
 export const PICK_HEADER = "STUDIO-PICK";
 
 export function galleryHtml(o: GalleryOpts): string {
-  const data = js({ id: o.id, title: o.title, limit: o.limit, expires: o.expires, pw: o.password, mail: o.contactEmail ?? "", photos: o.photos });
+  const data = js({ id: o.id, title: o.title, limit: o.limit, expires: o.expires, pw: o.password, mail: o.contactEmail ?? "", api: o.api ?? "", photos: o.photos });
   return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${esc(o.title)} · chọn ảnh</title>
 <style>
 :root{--bg:#f5f5f7;--card:#fff;--text:#1d1d1f;--muted:#6e6e73;--line:#d2d2d7;--accent:#0071e3;--heart:#ff2d55;color-scheme:light dark}
@@ -68,7 +69,8 @@ $("lbh").onclick=function(){var b=vis[cur].base;toggle(b);open(Math.min(cur,vis.
 document.onkeydown=function(e){if($("lb").className.indexOf("show")<0)return;if(e.key==="Escape")$("cl").onclick();if(e.key==="ArrowLeft")$("pv").onclick();if(e.key==="ArrowRight")$("nx").onclick()};
 $("fAll").onclick=function(){f="all";draw()};$("fSel").onclick=function(){f="sel";draw()};
 function code(){return "${PICK_HEADER}|"+D.id+"|"+n()+"\\n"+Object.keys(sel).sort().join(", ")}
-$("done").onclick=function(){var t=code();$("ot").value=t;$("os").textContent="Bạn đã chọn "+n()+" ảnh.";$("out").className="ov show"};
+$("done").onclick=function(){var t=code();$("ot").value=t;$("os").textContent="Bạn đã chọn "+n()+" ảnh.";$("out").className="ov show";
+ if(D.api){$("os").textContent+=" Đang gửi cho studio…";fetch(D.api+"/api/pick",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:D.id,names:Object.keys(sel)})}).then(function(r){if(!r.ok)throw 0;$("os").textContent="Đã gửi "+n()+" ảnh cho studio ✓. Bạn có thể đóng trang, hoặc sửa lại rồi gửi lần nữa."}).catch(function(){$("os").textContent="Chưa gửi tự động được. Hãy sao chép đoạn bên dưới và gửi cho studio."})}};
 $("ox").onclick=function(){$("out").className="ov"};
 $("oc").onclick=function(){$("ot").select();try{navigator.clipboard.writeText($("ot").value).then(function(){$("oc").textContent="Đã chép ✓"})}catch(e){document.execCommand("copy");$("oc").textContent="Đã chép ✓"}};
 $("osh").onclick=function(){if(navigator.share)navigator.share({title:D.title,text:$("ot").value}).catch(function(){});else $("oc").onclick()};

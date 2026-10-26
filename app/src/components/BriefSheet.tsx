@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Field, Sheet } from "./Sheet";
 import { briefHtml } from "../briefPage";
+import { publishPage } from "../pickServer";
 import { emptyBrief, getOps, opsActions, ROUTE_KIND, useOps, type Brief, type OpsEvent, type RouteKind } from "../opsStore";
 import { parseGpx } from "../gpx";
 import { Icon } from "./Icon";
@@ -74,6 +75,16 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
   });
   const html = () => briefHtml({ ...event, brief: build() }, o.spots.filter((s) => s.eventId === event.id), o.photographers);
   const save = () => { opsActions.updateEvent(event.id, { brief: build() }); onClose(); };
+  const publish = async () => {
+    setMsg("Đang đăng…");
+    try {
+      const id = b.pageId ?? `b-${event.id.replace(/[^A-Za-z0-9_-]/g, "")}-${Math.random().toString(36).slice(2, 8)}`;
+      const url = await publishPage(id, html());
+      setB((x) => ({ ...x, pageId: id, pageUrl: url }));
+      opsActions.updateEvent(event.id, { brief: { ...build(), pageId: id, pageUrl: url } });
+      try { await navigator.clipboard.writeText(url); setMsg("Đã đăng, link đã chép: " + url); } catch { setMsg("Đã đăng: " + url); }
+    } catch (e) { setMsg(e instanceof Error ? e.message : "Không đăng được."); }
+  };
   const download = () => {
     const url = URL.createObjectURL(new Blob([html()], { type: "text/html;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = `briefing-${event.id}.html`; a.click(); URL.revokeObjectURL(url);
@@ -85,9 +96,9 @@ export function BriefSheet({ event, onClose }: { event: OpsEvent; onClose: () =>
     <>
       <Sheet
         wide title="Trang briefing" onClose={onClose}
-        footer={<><button className="btn ghost" onClick={onClose}>Hủy</button><button className="btn tinted" onClick={download}>Tải HTML</button><button className="btn tinted" onClick={() => setPreview(html())}>Xem trước</button><button className="btn primary sm" onClick={save}>Lưu</button></>}
+        footer={<><button className="btn ghost" onClick={onClose}>Hủy</button><button className="btn tinted" onClick={download}>Tải HTML</button><button className="btn tinted" onClick={publish}>{b.pageUrl ? "Đăng lại" : "Đăng lên mạng"}</button><button className="btn tinted" onClick={() => setPreview(html())}>Xem trước</button><button className="btn primary sm" onClick={save}>Lưu</button></>}
       >
-        <p className="f-hint">Photographer mở trang này trên điện thoại để nắm sự kiện. Phân công điểm chụp lấy từ danh sách Spot của sự kiện.</p>
+        <p className="f-hint">{b.pageUrl ? <>Link cho đội: {b.pageUrl}. Bấm "Đăng lại" sau khi sửa để cập nhật cùng link. Trang có thể chứa mã đặt phòng, chỉ gửi cho người trong đội. </> : null}Photographer mở trang này trên điện thoại để nắm sự kiện. Phân công điểm chụp lấy từ danh sách Spot của sự kiện.</p>
         <div className="f-row">
           <Field label="Trưởng nhóm"><input className="input" value={b.teamLeader} onChange={(e) => set({ teamLeader: e.target.value })} /></Field>
           <Field label="Bắt đầu"><input className="input" value={b.startTime} onChange={(e) => set({ startTime: e.target.value })} placeholder="06:00" /></Field>

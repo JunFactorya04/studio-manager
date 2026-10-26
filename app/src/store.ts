@@ -25,7 +25,7 @@ export const PROJECT_TYPES = ["Chụp cưới", "Sự kiện", "Sản phẩm", "
 export const EXPENSE_CATEGORIES = ["Thiết bị", "Đi lại", "Cloud và phần mềm", "Thuê người", "In ấn", "Khác"];
 
 export interface Client { id: string; name: string; phone: string; email: string; channel: Channel; note: string }
-export interface Gallery { limit: number; password: string; expires: string; sentAt?: string; submittedAt?: string }
+export interface Gallery { limit: number; password: string; expires: string; sentAt?: string; submittedAt?: string; pageId?: string; pageUrl?: string; lastPickAt?: string }
 export interface Project {
   id: string; name: string; clientId: string; type: string;
   date: string; time: string; durationH: number; location: string;

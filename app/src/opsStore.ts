@@ -25,20 +25,21 @@ export interface Brief {
   routes: RouteInfo[];
   hotel: { name: string; address: string; phone: string; maps: string; checkIn: string; checkOut: string; booking: string };
   rooms: { room: string; people: string }[];
-  channels?: { name: string; url: string }[]; // chat groups, camera-check form, request form...
+  channels?: { name: string; url: string }[];
+  pageId?: string; pageUrl?: string; // published copy of the briefing page // chat groups, camera-check form, request form...
 }
 export const emptyBrief = (): Brief => ({
   teamLeader: "", startTime: "", endTime: "", participants: "", notes: [], welcome: "", guidance: [],
   venueName: "", venueAddress: "", venueMaps: "", course: [], files: [], routes: [],
   hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [], channels: [],
 });
-export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string; brief?: Brief; deliveryDir?: string } // deliveryDir: where finished photos are copied for the client/organizer
+export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string; brief?: Brief; deliveryDir?: string; demo?: boolean } // deliveryDir: where finished photos are copied for the client/organizer
 export interface Spot {
   id: string; eventId: string; name: string; captureDir: string; outputDir: string;
-  c1Session: string; recipe: string; photographerId: string; status: SpotStatus;
+  c1Session: string; recipe: string; photographerId: string; status: SpotStatus; demo?: boolean;
   arrival?: string; lens?: string; mapsUrl?: string; tip?: string; lat?: number; lon?: number; phase?: SpotPhase; // briefing: where and when the photographer should be
 }
-export interface Photographer { id: string; name: string; phone: string; email: string; note: string }
+export interface Photographer { id: string; name: string; phone: string; email: string; note: string; demo?: boolean }
 export interface Job {
   id: string; eventId: string; spotId: string; file: string; status: JobStatus;
   createdAt: string; durationSec: number; error?: string; output?: string; attempts: number;
@@ -94,13 +95,13 @@ const at = (daysAgo: number, h: number, m: number) => `${addDays(today(), -daysA
 function seed(): OpsData {
   const t = today();
   const photographers: Photographer[] = [
-    { id: "ph1", name: "Huy", phone: "0912 000 111", email: "huy@studio.test", note: "Thể thao, sự kiện" },
-    { id: "ph2", name: "Ngọc", phone: "0912 000 222", email: "ngoc@studio.test", note: "Chân dung" },
-    { id: "ph3", name: "An", phone: "0912 000 333", email: "", note: "Hỗ trợ" },
+    { demo: true, id: "ph1", name: "Huy", phone: "0912 000 111", email: "huy@studio.test", note: "Thể thao, sự kiện" },
+    { demo: true, id: "ph2", name: "Ngọc", phone: "0912 000 222", email: "ngoc@studio.test", note: "Chân dung" },
+    { demo: true, id: "ph3", name: "An", phone: "0912 000 333", email: "", note: "Hỗ trợ" },
   ];
   const events: OpsEvent[] = [
     {
-      id: "ev1", name: "Giải chạy Đạm Thủy", date: t, endDate: addDays(t, 1), venue: "Bờ sông Đạm Thủy", status: "live", note: "3 điểm chụp, giao ảnh trong ngày",
+      demo: true, id: "ev1", name: "Giải chạy Đạm Thủy", date: t, endDate: addDays(t, 1), venue: "Bờ sông Đạm Thủy", status: "live", note: "3 điểm chụp, giao ảnh trong ngày",
       brief: {
         teamLeader: "Huy", startTime: "06:00", endTime: "15:00", participants: "1.200",
         notes: ["Tạo thư mục mới trước khi chụp ở điểm mới", "Đánh dấu và khóa khoảng 20 ảnh đẹp nhất mỗi điểm", "Giao ảnh JPEG 2400px, kiểm tra Recipe trước giờ xuất phát"],
@@ -112,14 +113,14 @@ function seed(): OpsData {
         hotel: { name: "", address: "", phone: "", maps: "", checkIn: "", checkOut: "", booking: "" }, rooms: [],
       },
     },
-    { id: "ev2", name: "Hội thao trường Minh Đức", date: addDays(t, -9), endDate: addDays(t, -9), venue: "Sân vận động", status: "done", note: "" },
-    { id: "ev3", name: "Triển lãm Công nghệ", date: addDays(t, 12), endDate: addDays(t, 14), venue: "Trung tâm Triển lãm", status: "draft", note: "Chưa gán điểm chụp" },
+    { demo: true, id: "ev2", name: "Hội thao trường Minh Đức", date: addDays(t, -9), endDate: addDays(t, -9), venue: "Sân vận động", status: "done", note: "" },
+    { demo: true, id: "ev3", name: "Triển lãm Công nghệ", date: addDays(t, 12), endDate: addDays(t, 14), venue: "Trung tâm Triển lãm", status: "draft", note: "Chưa gán điểm chụp" },
   ];
   const spots: Spot[] = [
-    { id: "sp1", eventId: "ev1", name: "Vạch xuất phát", captureDir: "D:\\Capture\\DamThuy\\Start", outputDir: "D:\\Output\\DamThuy\\Start", c1Session: "DamThuy_Start.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph1", status: "active", arrival: "05:00", lens: "24-70 / 70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Start", tip: "Chụp từ phía sau vạch", lat: 25.172, lon: 121.457 },
-    { id: "sp2", eventId: "ev1", name: "Cầu Tình Yêu", captureDir: "D:\\Capture\\DamThuy\\Bridge", outputDir: "D:\\Output\\DamThuy\\Bridge", c1Session: "DamThuy_Bridge.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph2", status: "active", arrival: "06:30", lens: "70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Bridge", tip: "Ưu tiên ảnh nhóm", lat: 25.188, lon: 121.435 },
-    { id: "sp3", eventId: "ev1", name: "Vạch đích", captureDir: "D:\\Capture\\DamThuy\\Finish", outputDir: "D:\\Output\\DamThuy\\Finish", c1Session: "DamThuy_Finish.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph3", status: "error", arrival: "07:00", lens: "16-35", mapsUrl: "https://maps.google.com/?q=Tamsui+Finish", tip: "Khóa 20 ảnh về đích", lat: 25.156, lon: 121.435 },
-    { id: "sp4", eventId: "ev2", name: "Sân chính", captureDir: "D:\\Capture\\MinhDuc\\Main", outputDir: "D:\\Output\\MinhDuc\\Main", c1Session: "MinhDuc_Main.cosessiondb", recipe: "JPEG 2000px", photographerId: "ph1", status: "idle" },
+    { demo: true, id: "sp1", eventId: "ev1", name: "Vạch xuất phát", captureDir: "D:\\Capture\\DamThuy\\Start", outputDir: "D:\\Output\\DamThuy\\Start", c1Session: "DamThuy_Start.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph1", status: "active", arrival: "05:00", lens: "24-70 / 70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Start", tip: "Chụp từ phía sau vạch", lat: 25.172, lon: 121.457 },
+    { demo: true, id: "sp2", eventId: "ev1", name: "Cầu Tình Yêu", captureDir: "D:\\Capture\\DamThuy\\Bridge", outputDir: "D:\\Output\\DamThuy\\Bridge", c1Session: "DamThuy_Bridge.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph2", status: "active", arrival: "06:30", lens: "70-200", mapsUrl: "https://maps.google.com/?q=Tamsui+Bridge", tip: "Ưu tiên ảnh nhóm", lat: 25.188, lon: 121.435 },
+    { demo: true, id: "sp3", eventId: "ev1", name: "Vạch đích", captureDir: "D:\\Capture\\DamThuy\\Finish", outputDir: "D:\\Output\\DamThuy\\Finish", c1Session: "DamThuy_Finish.cosessiondb", recipe: "JPEG 2400px", photographerId: "ph3", status: "error", arrival: "07:00", lens: "16-35", mapsUrl: "https://maps.google.com/?q=Tamsui+Finish", tip: "Khóa 20 ảnh về đích", lat: 25.156, lon: 121.435 },
+    { demo: true, id: "sp4", eventId: "ev2", name: "Sân chính", captureDir: "D:\\Capture\\MinhDuc\\Main", outputDir: "D:\\Output\\MinhDuc\\Main", c1Session: "MinhDuc_Main.cosessiondb", recipe: "JPEG 2000px", photographerId: "ph1", status: "idle" },
   ];
 
   // A believable queue: finished work for yesterday's event, live work for today's.
@@ -195,12 +196,22 @@ export const opsActions = {
   reset() { commit(seed()); },
   // Remove the made-up jobs, deliveries and log lines; real ones (from the folder watcher) stay.
   clearDemo() {
-    commit({ ...state, jobs: state.jobs.filter((j) => !j.demo), deliveries: state.deliveries.filter((d) => !d.demo), logs: state.logs.filter((l) => !l.demo) });
+    const evs = new Set(state.events.filter((e) => e.demo).map((e) => e.id));
+    const sps = new Set(state.spots.filter((x) => x.demo || evs.has(x.eventId)).map((x) => x.id));
+    commit({
+      ...state,
+      events: state.events.filter((e) => !e.demo),
+      spots: state.spots.filter((x) => !sps.has(x.id)).map((x) => (state.photographers.find((p) => p.id === x.photographerId)?.demo ? { ...x, photographerId: "" } : x)),
+      photographers: state.photographers.filter((p) => !p.demo),
+      jobs: state.jobs.filter((j) => !j.demo && !sps.has(j.spotId)),
+      deliveries: state.deliveries.filter((d) => !d.demo && !sps.has(d.spotId)),
+      logs: state.logs.filter((l) => !l.demo),
+    });
   },
-  hasDemo() { return state.jobs.some((j) => j.demo) || state.deliveries.some((d) => d.demo) || state.logs.some((l) => l.demo); },
+  hasDemo() { return state.events.some((e) => e.demo) || state.spots.some((x) => x.demo) || state.photographers.some((p) => p.demo) || state.jobs.some((j) => j.demo) || state.deliveries.some((d) => d.demo) || state.logs.some((l) => l.demo); },
   setJobKeep(id: string, keep?: "lock" | "marketing") { commit({ ...state, jobs: state.jobs.map((j) => (j.id === id ? { ...j, keep } : j)) }); },
   addPhotographer(p: Omit<Photographer, "id">) { commit({ ...state, photographers: [...state.photographers, { ...p, id: uid() }], logs: capLogs([logLine("config", `Thêm photographer ${p.name}`), ...state.logs]) }); },
-  updatePhotographer(id: string, patch: Partial<Photographer>) { commit({ ...state, photographers: state.photographers.map((p) => (p.id === id ? { ...p, ...patch } : p)) }); },
+  updatePhotographer(id: string, patch: Partial<Photographer>) { commit({ ...state, photographers: state.photographers.map((p) => (p.id === id ? { ...p, ...patch, demo: undefined } : p)) }); },
   deletePhotographer(id: string) { commit({ ...state, photographers: state.photographers.filter((p) => p.id !== id), spots: state.spots.map((s) => (s.photographerId === id ? { ...s, photographerId: "" } : s)) }); },
   addBooking(b: Omit<Booking, "id" | "createdAt">) { const nb = { ...b, id: uid(), createdAt: today() }; commit({ ...state, bookings: [nb, ...(state.bookings ?? [])], logs: capLogs([logLine("config", `Booking mới: ${b.name}`), ...state.logs]) }); return nb; },
   updateBooking(id: string, patch: Partial<Booking>) { commit({ ...state, bookings: (state.bookings ?? []).map((b) => (b.id === id ? { ...b, ...patch } : b)) }); },
@@ -225,7 +236,7 @@ export const opsActions = {
     return ev;
   },
   updateEvent(id: string, patch: Partial<OpsEvent>) {
-    commit({ ...state, events: state.events.map((e) => (e.id === id ? { ...e, ...patch } : e)), logs: [logLine("config", "Sửa thông tin sự kiện", id), ...state.logs] });
+    commit({ ...state, events: state.events.map((e) => (e.id === id ? { ...e, ...patch, demo: undefined } : e)), logs: [logLine("config", "Sửa thông tin sự kiện", id), ...state.logs] });
   },
   deleteEvent(id: string) {
     const spotIds = new Set(state.spots.filter((s) => s.eventId === id).map((s) => s.id));
@@ -244,7 +255,7 @@ export const opsActions = {
   },
   updateSpot(id: string, patch: Partial<Spot>) {
     const sp = state.spots.find((s) => s.id === id);
-    commit({ ...state, spots: state.spots.map((s) => (s.id === id ? { ...s, ...patch } : s)), logs: [logLine("config", `Sửa điểm chụp ${sp?.name ?? ""}`, sp?.eventId, id), ...state.logs] });
+    commit({ ...state, spots: state.spots.map((s) => (s.id === id ? { ...s, ...patch, demo: undefined } : s)), logs: [logLine("config", `Sửa điểm chụp ${sp?.name ?? ""}`, sp?.eventId, id), ...state.logs] });
   },
   deleteSpot(id: string) {
     commit({ ...state, spots: state.spots.filter((s) => s.id !== id), jobs: state.jobs.filter((j) => j.spotId !== id), deliveries: state.deliveries.filter((d) => d.spotId !== id) });

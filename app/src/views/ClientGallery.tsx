@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { Field } from "../components/Sheet";
 import { actions, addDays, clientOf, fmtDate, today, useData, type Project } from "../store";
 import { fileUrl, isDesktop, slug } from "../native";
+import { fetchPicks, getPickServer, publishPage } from "../pickServer";
 import { galleryHtml, parsePick, type GalleryPhoto } from "../galleryPage";
 import type { Go } from "../nav";
 
@@ -42,7 +43,7 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
 
   const inviteText = () =>
     `Chào ${client?.name ?? "anh/chị"}, ảnh "${p.name}" đã sẵn sàng để chọn. ` +
-    `Anh/chị chọn tối đa ${limit} ảnh trước ngày ${fmtDate(p.gallery?.expires ?? form.expires)}. Mật khẩu: ${p.gallery?.password ?? form.password}`;
+    `Anh/chị chọn tối đa ${limit} ảnh trước ngày ${fmtDate(p.gallery?.expires ?? form.expires)}. ` + (p.gallery?.pageUrl ? `Link: ${p.gallery.pageUrl} ` : "") + `Mật khẩu: ${p.gallery?.password ?? form.password}`;
 
   const send = () => {
     if (!p.gallery) save();
@@ -75,21 +76,55 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
   const [busy, setBusy] = useState(false);
   const [pasted, setPasted] = useState("");
   const [importMsg, setImportMsg] = useState("");
-  const thumb = async (path?: string): Promise<string | undefined> => {
+  const thumb = async (path?: string, max = 480, q = 0.72): Promise<string | undefined> => {
     const url = fileUrl(path);
     if (!url) return undefined;
     try {
       const bmp = await createImageBitmap(await (await fetch(url)).blob());
-      const w = Math.min(480, bmp.width), h = Math.round((bmp.height * w) / bmp.width);
+      const w = Math.min(max, bmp.width), h = Math.round((bmp.height * w) / bmp.width);
       const c = document.createElement("canvas"); c.width = w; c.height = h;
       c.getContext("2d")!.drawImage(bmp, 0, 0, w, h);
-      return c.toDataURL("image/jpeg", 0.72);
+      return c.toDataURL("image/jpeg", q);
     } catch { return undefined; }
   };
   const download = (name: string, text: string, type = "text/html") => {
     const u = URL.createObjectURL(new Blob([text], { type })); const a = document.createElement("a");
     a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u);
   };
+  const makeHtml = async (online: boolean, id: string) => {
+    const photos: GalleryPhoto[] = [];
+    for (const a of pool) photos.push({ base: a.base, color: a.color, src: await thumb(a.thumbPath, online ? 360 : 480, online ? 0.65 : 0.72) });
+    const g = p.gallery ?? form;
+    return galleryHtml({ id, title: p.name, studio: d.settings.studioName, limit: g.limit, expires: g.expires, password: g.password, photos, contactEmail: client?.email ?? "", api: online ? getPickServer().url : undefined });
+  };
+  const publish = async () => {
+    setBusy(true); setImportMsg("");
+    try {
+      const id = p.gallery?.pageId ?? `${p.id.replace(/[^A-Za-z0-9_-]/g, "")}-${Math.random().toString(36).slice(2, 8)}`;
+      const url = await publishPage(id, await makeHtml(true, id));
+      actions.updateProject(p.id, { gallery: { ...form, ...p.gallery, pageId: id, pageUrl: url, sentAt: p.gallery?.sentAt ?? today() } });
+      actions.logActivity(p.id, "Đăng trang chọn ảnh lên mạng");
+      try { await navigator.clipboard.writeText(url); setImportMsg("Đã đăng và chép link: " + url); } catch { setImportMsg("Đã đăng: " + url); }
+    } catch (e) { setImportMsg(e instanceof Error ? e.message : "Không đăng được."); }
+    setBusy(false);
+  };
+  const syncPicks = async (quiet = false) => {
+    const id = p.gallery?.pageId;
+    if (!id) return;
+    try {
+      const r = await fetchPicks(id);
+      if (!r.at || r.at === p.gallery?.lastPickAt) { if (!quiet) setImportMsg("Khách chưa gửi lựa chọn mới."); return; }
+      applyNames(r.names);
+      actions.updateProject(p.id, { gallery: { ...form, ...p.gallery, lastPickAt: r.at, submittedAt: today() } });
+    } catch (e) { if (!quiet) setImportMsg(e instanceof Error ? e.message : "Không đồng bộ được."); }
+  };
+  const syncRef = useRef(syncPicks); syncRef.current = syncPicks;
+  useEffect(() => {
+    if (!p.gallery?.pageId || submitted) return;
+    const t = setInterval(() => void syncRef.current(true), 30_000);
+    void syncRef.current(true);
+    return () => clearInterval(t);
+  }, [p.gallery?.pageId, submitted]); // eslint-disable-line react-hooks/exhaustive-deps
   const buildPage = async () => {
     setBusy(true);
     const photos: GalleryPhoto[] = [];
@@ -100,9 +135,8 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
     actions.logActivity(p.id, `Tạo trang chọn ảnh cho khách (${photos.length} ảnh)`);
     setBusy(false);
   };
-  const applyPick = () => {
-    const { names: got } = parsePick(pasted);
-    if (!got.length) return setImportMsg("Không đọc được tên ảnh nào. Dán nguyên đoạn khách gửi.");
+  const applyNames = (got: string[]) => {
+    if (!got.length) return setImportMsg("Không đọc được tên ảnh nào.");
     const want = new Set(got.map((x) => x.toLowerCase()));
     const found = new Set<string>();
     pool.forEach((a) => { const on = want.has(a.base.toLowerCase()); if (on) found.add(a.base.toLowerCase()); if (a.picked !== on) actions.updateAsset(a.id, { picked: on }); });
@@ -110,8 +144,8 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
     actions.updateProject(p.id, { gallery: { ...form, ...p.gallery, submittedAt: today() } });
     actions.logActivity(p.id, `Nhập lựa chọn của khách: ${found.size} ảnh`);
     setImportMsg(`Đã đánh dấu ${found.size} ảnh khách chọn.` + (missing.length ? ` Không tìm thấy trong dự án: ${missing.slice(0, 12).join(", ")}${missing.length > 12 ? "…" : ""}` : ""));
-    setPasted("");
   };
+  const applyPick = () => { applyNames(parsePick(pasted).names); setPasted(""); };
   const rawList = picked.map((a) => a.rawPath ?? a.jpgPath ?? a.base);
 
   if (mode === "client") {
@@ -222,8 +256,9 @@ export function ClientGallery({ project: p, go }: { project: Project; go: Go }) 
 
           <section className="card pad" aria-label="Trang chọn ảnh cho khách">
             <h2 className="card-title">Trang chọn ảnh cho khách</h2>
-            <p className="f-hint">Tạo một file .html có ảnh xem trước, thả tim, giới hạn {limit} ảnh và mật khẩu. Đưa file lên Vercel (hoặc Netlify Drop) để có link gửi khách; khách chọn xong bấm "Gửi lựa chọn" để gửi đoạn mã lại cho bạn qua LINE, Zalo hay email. Mật khẩu chỉ ngăn người lạ vô tình mở, không phải bảo mật cao.</p>
-            <div className="toolbar"><button className="btn tinted sm" onClick={buildPage} disabled={busy || pool.length === 0}><Icon name="download" size={16} />{busy ? "Đang tạo…" : "Tạo trang (.html)"}</button></div>
+            <p className="f-hint">Tạo một file .html có ảnh xem trước, thả tim, giới hạn {limit} ảnh và mật khẩu. "Đăng lên mạng" đưa trang lên máy chủ studio và cho bạn link gửi khách (cần nhập khóa trong Cài đặt); khách chọn xong bấm "Gửi lựa chọn" là về app. Nếu không dùng máy chủ, tải file .html tự đưa lên host, khách gửi lại đoạn mã qua LINE, Zalo hay email. Mật khẩu chỉ ngăn người lạ vô tình mở, không phải bảo mật cao.</p>
+            <div className="toolbar"><button className="btn primary sm" onClick={publish} disabled={busy || pool.length === 0}><Icon name="send" size={16} />{busy ? "Đang xử lý…" : p.gallery?.pageUrl ? "Đăng lại" : "Đăng lên mạng"}</button><button className="btn tinted sm" onClick={buildPage} disabled={busy || pool.length === 0}><Icon name="download" size={16} />Tải trang (.html)</button>{p.gallery?.pageId ? <button className="btn tinted sm" onClick={() => void syncPicks()}>Lấy lựa chọn của khách</button> : null}</div>
+            {p.gallery?.pageUrl ? <p className="f-hint">Link khách: {p.gallery.pageUrl} · mật khẩu {p.gallery.password}. App tự kiểm tra lựa chọn của khách mỗi 30 giây khi mở màn hình này.</p> : null}
             {!isDesktop ? <p className="f-hint">Bản web không có ảnh xem trước thật, trang sẽ hiện ô màu. Dùng bản app để nhúng ảnh.</p> : null}
             <Field label="Khách gửi lại lựa chọn" hint="Dán đoạn mã khách gửi (dòng đầu STUDIO-PICK|… rồi các tên ảnh)">
               <textarea className="textarea" rows={3} value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder="STUDIO-PICK|…" />

@@ -1,7 +1,7 @@
 import { Header } from "../components/Header";
 import { Icon } from "../components/Icon";
 import { fmtDate } from "../store";
-import { SPOT_STATUS, spotStats, useOps, type LogKind } from "../opsStore";
+import { SPOT_STATUS, opsActions, spotStats, useOps, type LogKind } from "../opsStore";
 import type { Go } from "../nav";
 
 const KIND_LABEL: Record<LogKind, string> = { ingest: "Nhận ảnh", process: "Xử lý", export: "Xuất", upload: "Gửi", error: "Lỗi", retry: "Thử lại", config: "Cấu hình" };
@@ -113,7 +113,7 @@ export function OpsOverview({ go }: { go: Go }) {
         ))}
         {o.logs.length === 0 ? <p className="empty">Chưa có hoạt động.</p> : null}
       </div>
-      <p className="f-hint">Hiện là dữ liệu mẫu lưu trong app. Studio Agent và máy chủ trung tâm sẽ thay thế khi được nối.</p>
+      {opsActions.hasDemo() ? <p className="f-hint">Một phần là dữ liệu mẫu. Vào Cài đặt vận hành → "Xóa dữ liệu mẫu" để bắt đầu dùng thật; dữ liệu bạn đã sửa hoặc tự tạo được giữ lại.</p> : null}
     </div>
   );
 }
