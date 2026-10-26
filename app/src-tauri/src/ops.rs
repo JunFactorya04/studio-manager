@@ -1,6 +1,6 @@
 // Tauri commands for the operations area. The work itself lives in ops_core.rs.
 
-use crate::ops_core::{self, Delivered, DirCheck, DirScan, DirStats, FileInfo, MachineInfo, Processed};
+use crate::ops_core::{self, C1Info, Delivered, DirCheck, DirScan, DirStats, FileInfo, MachineInfo, Processed};
 use std::path::PathBuf;
 
 #[tauri::command]
@@ -36,4 +36,25 @@ pub async fn file_info(path: String) -> Result<FileInfo, String> {
 #[tauri::command]
 pub async fn machine_info() -> Result<MachineInfo, String> {
     tauri::async_runtime::spawn_blocking(|| Ok(ops_core::machine_info())).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn c1_info() -> Result<C1Info, String> {
+    tauri::async_runtime::spawn_blocking(|| Ok(ops_core::c1_info())).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn c1_status() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(ops_core::c1_status).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn c1_open(path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || ops_core::c1_open(&path)).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn c1_process(recipe: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || ops_core::c1_process(&recipe)).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn c1_dictionary() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(ops_core::c1_dictionary).await.map_err(|e| e.to_string())?
 }

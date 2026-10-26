@@ -311,6 +311,89 @@ pub fn machine_info() -> MachineInfo {
     MachineInfo { host, os: std::env::consts::OS.to_string(), capture_one_running: running }
 }
 
+// ---------- Capture One control (macOS, AppleScript) ----------
+// Capture One has a scripting dictionary on macOS only. Parameters are escaped, never pasted raw into a script,
+// and every error text from osascript is returned unchanged so a wrong command shows up clearly in the app.
+
+pub fn as_quote(s: &str) -> String {
+    let t: String = s.chars().filter(|c| !c.is_control()).collect();
+    format!("\"{}\"", t.replace('\\', "\\\\").replace('"', "\\\""))
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct C1Info {
+    pub supported: bool,
+    pub app_path: Option<String>,
+    pub running: bool,
+}
+
+#[cfg(target_os = "macos")]
+fn osa(script: &str) -> Result<String, String> {
+    let o = std::process::Command::new("osascript").arg("-e").arg(script).output().map_err(|e| format!("không chạy được osascript: {e}"))?;
+    if o.status.success() {
+        Ok(String::from_utf8_lossy(&o.stdout).trim().to_string())
+    } else {
+        let e = String::from_utf8_lossy(&o.stderr).trim().to_string();
+        Err(if e.contains("-1743") || e.to_lowercase().contains("not allowed") { format!("macOS chưa cho phép app điều khiển Capture One. Vào Cài đặt hệ thống → Quyền riêng tư & Bảo mật → Tự động hóa, bật Capture One cho Studio Manager. ({e})") } else { e })
+    }
+}
+#[cfg(not(target_os = "macos"))]
+fn osa(_script: &str) -> Result<String, String> {
+    Err("Điều khiển Capture One chỉ có trên máy Mac (AppleScript)".into())
+}
+
+fn c1_app_path() -> Option<String> {
+    for dir in ["/Applications", "/Applications/Capture One"] {
+        if let Ok(rd) = fs::read_dir(dir) {
+            let mut found: Vec<String> = rd.filter_map(Result::ok).map(|e| e.path().to_string_lossy().to_string()).filter(|p| p.ends_with(".app") && p.contains("Capture One")).collect();
+            found.sort();
+            if let Some(p) = found.pop() { return Some(p); }
+        }
+    }
+    None
+}
+
+pub fn c1_info() -> C1Info {
+    let supported = cfg!(target_os = "macos");
+    C1Info { supported, app_path: if supported { c1_app_path() } else { None }, running: machine_info().capture_one_running }
+}
+
+// Application name as macOS knows it ("Capture One", "Capture One 23"...), taken from the .app folder name.
+fn c1_name() -> Result<String, String> {
+    let p = c1_app_path().ok_or("Không tìm thấy Capture One trong thư mục Applications")?;
+    Ok(Path::new(&p).file_stem().and_then(|s| s.to_str()).unwrap_or("Capture One").to_string())
+}
+
+/// Current document name and the recipes it offers.
+pub fn c1_status() -> Result<String, String> {
+    let app = c1_name()?;
+    osa(&format!("tell application {} to return (name of current document) & \"||\" & (name of every recipe of current document as text)", as_quote(&app)))
+}
+
+pub fn c1_open(path: &str) -> Result<String, String> {
+    if !Path::new(path).exists() { return Err("File session không tồn tại".into()); }
+    let app = c1_name()?;
+    osa(&format!("tell application {} to open POSIX file {}", as_quote(&app), as_quote(path)))
+}
+
+/// Ask Capture One to process every photo of the current collection with the named recipe.
+pub fn c1_process(recipe: &str) -> Result<String, String> {
+    if recipe.trim().is_empty() { return Err("Chưa nhập tên recipe".into()); }
+    let app = c1_name()?;
+    osa(&format!("tell application {} to process (every variant of current collection of current document) recipe {}", as_quote(&app), as_quote(recipe.trim())))
+}
+
+/// The first lines of the scripting dictionary, so a wrong command can be fixed from real data.
+pub fn c1_dictionary() -> Result<String, String> {
+    let p = c1_app_path().ok_or("Không tìm thấy Capture One")?;
+    let o = std::process::Command::new("sdef").arg(&p).output().map_err(|e| format!("không chạy được sdef: {e}"))?;
+    if !o.status.success() { return Err(String::from_utf8_lossy(&o.stderr).to_string()); }
+    let text = String::from_utf8_lossy(&o.stdout).to_string();
+    let lines: Vec<&str> = text.lines().filter(|l| l.contains("<command ") || l.contains("<class ") || l.contains("<property ") || l.contains("<element ")).collect();
+    Ok(lines.join("\n").chars().take(12000).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -420,6 +503,14 @@ mod tests {
         assert!(file_info(&d.join("a.jpg").to_string_lossy()).exists);
         assert!(!file_info(&d.join("zz").to_string_lossy()).exists);
         assert!(!machine_info().host.is_empty());
+    }
+
+    #[test]
+    fn applescript_quote_escapes() {
+        assert_eq!(as_quote("a\"b\\c"), "\"a\\\"b\\\\c\"");
+        assert_eq!(as_quote("x\ny"), "\"xy\"");
+        assert!(c1_process("   ").is_err());
+        assert!(c1_open("/no/such/file.cosessiondb").is_err());
     }
 
     #[test]

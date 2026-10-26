@@ -64,3 +64,11 @@ export interface MachineInfo { host: string; os: string; captureOneRunning: bool
 export const dirStats = (path: string) => invoke<DirStats>("dir_stats", { path });
 export const fileInfo = (path: string) => invoke<FileInfo>("file_info", { path });
 export const machineInfo = () => invoke<MachineInfo>("machine_info");
+
+// Capture One control (macOS only; other systems get a clear error from Rust)
+export interface C1Info { supported: boolean; appPath?: string | null; running: boolean }
+export const c1Info = () => invoke<C1Info>("c1_info");
+export const c1Status = () => invoke<string>("c1_status");
+export const c1Open = (path: string) => invoke<string>("c1_open", { path });
+export const c1Process = (recipe: string) => invoke<string>("c1_process", { recipe });
+export const c1Dictionary = () => invoke<string>("c1_dictionary");

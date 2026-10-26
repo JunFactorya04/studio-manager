@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Header } from "../components/Header";
-import { dirStats, fileInfo, fmtBytes, isDesktop, machineInfo, type DirStats, type FileInfo, type MachineInfo } from "../native";
+import { c1Dictionary, c1Info, c1Open, c1Process, c1Status, dirStats, fileInfo, fmtBytes, isDesktop, machineInfo, type DirStats, type FileInfo, type MachineInfo } from "../native";
 import { useOps } from "../opsStore";
 import { useEngine } from "../opsEngine";
 import type { Go } from "../nav";
@@ -57,11 +57,12 @@ export function CaptureOne({ go }: { go: Go }) {
 
   return (
     <div className="page ops-page">
-      <Header title="Capture One" eyebrow="Giám sát, chỉ đọc" />
+      <Header title="Capture One" eyebrow="Giám sát và điều khiển" />
       <div className="card pad engine-bar">
         <span className={"sys-dot " + (mac?.captureOneRunning ? "ok" : "")} />
-        <span className="row-main"><strong>{!isDesktop ? "Chỉ chạy trong bản app" : mac ? (mac.captureOneRunning ? "Capture One đang chạy" : "Không thấy Capture One đang chạy") : "Đang kiểm tra…"}</strong><small>App chỉ đọc: kiểm tra tiến trình, file session và số ảnh trong thư mục chụp / xuất. Không điều khiển Capture One.</small></span>
+        <span className="row-main"><strong>{!isDesktop ? "Chỉ chạy trong bản app" : mac ? (mac.captureOneRunning ? "Capture One đang chạy" : "Không thấy Capture One đang chạy") : "Đang kiểm tra…"}</strong><small>Theo dõi tiến trình, file session và số ảnh trong thư mục chụp / xuất. Điều khiển (mở session, xuất recipe) chỉ có trên Mac.</small></span>
       </div>
+      {isDesktop ? <C1Control /> : null}
       <p className="f-hint">Ô "Session" của điểm chụp: điền đường dẫn đầy đủ tới file .cosessiondb để kiểm tra file tồn tại và lần sửa cuối; chỉ điền tên thì app chỉ hiển thị tên.</p>
       <div className="card list">
         {spots.map((s) => {
@@ -108,5 +109,40 @@ export function Agent() {
       </div>
       <p className="f-hint">Hiện mỗi máy tự chạy bộ nhận, xử lý và giao ảnh của riêng nó, và báo trạng thái lên màn hình Tổng quan vận hành. Chưa có máy chủ trung tâm, nên chưa xem được nhiều máy cùng lúc. Lần cập nhật cuối: {a.real ? a.lastSeen.replace("T", " ") : "—"}.</p>
     </div>
+  );
+}
+
+// Mac only: open a session and run a recipe through Capture One's AppleScript interface.
+// Every answer or error from Capture One is shown as it came, so a wrong command can be fixed from real text.
+function C1Control() {
+  const o = useOps();
+  const [out, setOut] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [recipe, setRecipe] = useState("");
+  const run = async (label: string, fn: () => Promise<string>) => {
+    setBusy(true); setOut(`${label}…`);
+    try { setOut(`${label}: ${(await fn()) || "xong"}`); } catch (e) { setOut(`${label} lỗi: ${typeof e === "string" ? e : e instanceof Error ? e.message : "không rõ"}`); }
+    setBusy(false);
+  };
+  const sessions = o.spots.filter((s) => isAbs(s.c1Session.trim()));
+  return (
+    <section className="card pad" aria-label="Điều khiển Capture One">
+      <h2 className="card-title">Điều khiển Capture One (Mac)</h2>
+      <div className="toolbar">
+        <button className="chip-btn" disabled={busy} onClick={() => run("Kết nối", async () => { const i = await c1Info(); if (!i.supported) return "Chỉ có trên Mac"; if (!i.appPath) return "Không tìm thấy Capture One trong Applications"; return `Tìm thấy ${i.appPath}. ${i.running ? "Đang chạy: " + (await c1Status()) : "Chưa chạy, hãy mở Capture One trước."}`; })}>Kiểm tra kết nối</button>
+        <button className="chip-btn" disabled={busy} onClick={() => run("Từ điển lệnh", c1Dictionary)}>Đọc từ điển lệnh</button>
+      </div>
+      {sessions.length ? (
+        <div className="toolbar">
+          {sessions.map((s) => <button key={s.id} className="chip-btn" disabled={busy} onClick={() => run("Mở session " + s.name, () => c1Open(s.c1Session.trim()))}>Mở session: {s.name}</button>)}
+        </div>
+      ) : <p className="f-hint">Điền đường dẫn đầy đủ tới file .cosessiondb ở ô Session của điểm chụp để có nút mở session.</p>}
+      <div className="f-row tight">
+        <input className="input" value={recipe} onChange={(e) => setRecipe(e.target.value)} placeholder="Tên recipe trong Capture One, ví dụ JPEG 2400px" />
+        <button className="chip-btn" disabled={busy || !recipe.trim()} onClick={() => run("Xuất", () => c1Process(recipe))}>Xuất ảnh của bộ sưu tập hiện tại</button>
+      </div>
+      <p className="f-hint">Lần đầu macOS sẽ hỏi cho phép Studio Manager điều khiển Capture One: bấm Cho phép. Xuất ngay áp dụng cho bộ sưu tập đang mở trong Capture One.</p>
+      {out ? <pre className="c1-out" role="status">{out}</pre> : null}
+    </section>
   );
 }
