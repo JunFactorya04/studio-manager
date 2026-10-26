@@ -58,3 +58,9 @@ export const scanCapture = (dirs: string[]) => invoke<DirScan[]>("scan_capture",
 export const processImage = (src: string, outDir: string, longEdge: number, quality = 90) => invoke<Processed>("process_image", { src, outDir, longEdge, quality });
 export const deliverFile = (src: string, destDir: string, sub: string) => invoke<Delivered>("deliver_file", { src, destDir, sub });
 export const checkDir = (path: string) => invoke<DirCheck>("check_dir", { path });
+export interface DirStats { exists: boolean; count: number; bytes: number; latestMs: number }
+export interface FileInfo { exists: boolean; size: number; modifiedMs: number }
+export interface MachineInfo { host: string; os: string; captureOneRunning: boolean }
+export const dirStats = (path: string) => invoke<DirStats>("dir_stats", { path });
+export const fileInfo = (path: string) => invoke<FileInfo>("file_info", { path });
+export const machineInfo = () => invoke<MachineInfo>("machine_info");

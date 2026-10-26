@@ -51,6 +51,7 @@ export interface EngineSettings { paused: boolean; maxAttempts: number; pollSec:
 export const defaultEngine = (): EngineSettings => ({ paused: false, maxAttempts: 3, pollSec: 5 });
 
 export interface AgentState {
+  os?: string; real?: boolean; // real = filled in by this app, not sample data
   online: boolean; lastSeen: string; host: string; localQueue: number;
   captureOne: "ok" | "idle" | "error"; ftp: "ok" | "idle" | "error";
 }
@@ -192,6 +193,7 @@ export const opsActions = {
     commit({ ...state, jobs: state.jobs.filter((j) => !j.demo), deliveries: state.deliveries.filter((d) => !d.demo), logs: state.logs.filter((l) => !l.demo) });
   },
   hasDemo() { return state.jobs.some((j) => j.demo) || state.deliveries.some((d) => d.demo) || state.logs.some((l) => l.demo); },
+  setAgent(patch: Partial<AgentState>) { commit({ ...state, agent: { ...state.agent, ...patch } }); },
   setEngine(patch: Partial<EngineSettings>) { commit({ ...state, engine: { ...defaultEngine(), ...state.engine, ...patch } }); },
   // Used by the engine: one commit per batch so a big folder does not rewrite storage once per photo.
   addJobs(jobs: Job[], note?: LogEntry) { if (jobs.length) commit({ ...state, jobs: [...state.jobs, ...jobs], logs: note ? capLogs([note, ...state.logs]) : state.logs }); },

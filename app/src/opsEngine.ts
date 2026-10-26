@@ -5,7 +5,7 @@
 // Every step is idempotent: a photo is identified by its full path, so rescans never create duplicates.
 
 import { useSyncExternalStore } from "react";
-import { deliverFile, isDesktop, processImage, scanCapture, type DirScan } from "./native";
+import { deliverFile, isDesktop, machineInfo, processImage, scanCapture, type DirScan } from "./native";
 import { getOps, logLine, opsActions, type Job } from "./opsStore";
 import { uid } from "./store";
 
@@ -140,12 +140,30 @@ function pump() {
   setView({ busy: busyJobs.size + busyDeliveries.size });
 }
 
+let lastBeat = 0;
+let lastHost: { host: string; os: string; c1: boolean } | undefined;
+// Fill the "Studio Agent" card with this machine's real state (host, Capture One process, folder watcher, queue).
+async function heartbeat() {
+  const now = Date.now();
+  if (now - lastBeat < 15_000) return;
+  lastBeat = now;
+  try { const m = await machineInfo(); lastHost = { host: m.host, os: m.os, c1: m.captureOneRunning }; } catch { /* keep the previous value */ }
+  const o = getOps();
+  const dirs = Object.values(view.dirs);
+  const queue = o.jobs.filter((j) => j.source && (j.status === "pending" || j.status === "running")).length + o.deliveries.filter((d) => !d.demo && (d.status === "pending" || d.status === "uploading")).length;
+  opsActions.setAgent({
+    real: true, online: !o.engine?.paused, lastSeen: new Date().toISOString().slice(0, 19), host: lastHost?.host ?? o.agent.host, os: lastHost?.os, localQueue: queue,
+    captureOne: lastHost?.c1 ? "ok" : "idle", ftp: dirs.some((d) => !d.ok) ? "error" : dirs.length ? "ok" : "idle",
+  });
+}
+
 export async function tick() {
   if (ticking) return;
   ticking = true;
   try {
     if (!getOps().engine?.paused) { await ingest(); pump(); }
     setView({ lastTick: Date.now() });
+    await heartbeat();
   } catch { /* a failed scan must never stop the loop */ } finally { ticking = false; }
 }
 

@@ -14,6 +14,7 @@ import { Login } from "./views/Login";
 import { More } from "./views/More";
 import { OpsOverview } from "./views/OpsOverview";
 import { Delivery, Ingest, Queue } from "./views/OpsPipeline";
+import { Agent, CaptureOne } from "./views/OpsMonitor";
 import { startEngine } from "./opsEngine";
 import { Events } from "./views/Events";
 import { WindowControls } from "./components/WindowControls";
@@ -57,6 +58,8 @@ export default function App() {
   else if (route.view === "finance") screen = <Finance go={go} />;
   else if (route.view === "more") screen = <More go={go} openSettings={() => setSettings(true)} />;
   else if (route.view === "ops") screen = <OpsOverview go={go} />;
+  else if (route.view === "c1") screen = <CaptureOne go={go} />;
+  else if (route.view === "agent") screen = <Agent />;
   else if (route.view === "ingest") screen = <Ingest go={go} />;
   else if (route.view === "queue") screen = <Queue go={go} />;
   else if (route.view === "delivery") screen = <Delivery go={go} />;

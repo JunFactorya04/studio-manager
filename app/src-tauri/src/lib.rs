@@ -21,7 +21,10 @@ pub fn run() {
             ops::scan_capture,
             ops::process_image,
             ops::deliver_file,
-            ops::check_dir
+            ops::check_dir,
+            ops::dir_stats,
+            ops::file_info,
+            ops::machine_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running Studio Manager");

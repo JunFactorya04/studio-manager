@@ -232,6 +232,85 @@ pub fn check_dir(path: &str) -> DirCheck {
     DirCheck { exists: true, writable, free_hint: None }
 }
 
+
+// ---------- read-only monitoring (Capture One, folders, this machine) ----------
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct DirStats {
+    pub exists: bool,
+    pub count: u32,
+    pub bytes: u64,
+    pub latest_ms: u64,
+}
+
+/// How many photos a folder holds and when the newest one arrived (never modifies anything).
+pub fn dir_stats(path: &str) -> DirStats {
+    let root = PathBuf::from(path);
+    if path.trim().is_empty() || !root.is_dir() {
+        return DirStats { exists: false, count: 0, bytes: 0, latest_ms: 0 };
+    }
+    let (mut count, mut bytes, mut latest_ms) = (0u32, 0u64, 0u64);
+    for e in WalkDir::new(&root).max_depth(3).into_iter().filter_map(Result::ok) {
+        if !e.file_type().is_file() || is_temp_name(&e.file_name().to_string_lossy()) {
+            continue;
+        }
+        let ext = ext_of(e.path());
+        if !RAW_EXT.contains(&ext.as_str()) && !PHOTO_EXT.contains(&ext.as_str()) {
+            continue;
+        }
+        if let Ok(m) = e.metadata() {
+            count += 1;
+            bytes += m.len();
+            let ms = m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis() as u64).unwrap_or(0);
+            latest_ms = latest_ms.max(ms);
+        }
+    }
+    DirStats { exists: true, count, bytes, latest_ms }
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct FileInfo {
+    pub exists: bool,
+    pub size: u64,
+    pub modified_ms: u64,
+}
+
+pub fn file_info(path: &str) -> FileInfo {
+    match fs::metadata(path) {
+        Ok(m) if m.is_file() || m.is_dir() => FileInfo { exists: true, size: m.len(), modified_ms: m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis() as u64).unwrap_or(0) },
+        _ => FileInfo { exists: false, size: 0, modified_ms: 0 },
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MachineInfo {
+    pub host: String,
+    pub os: String,
+    pub capture_one_running: bool,
+}
+
+fn run_ok(cmd: &str, args: &[&str]) -> Option<String> {
+    let o = std::process::Command::new(cmd).args(args).output().ok()?;
+    if o.status.success() { Some(String::from_utf8_lossy(&o.stdout).to_string()) } else { None }
+}
+
+/// Host name and whether Capture One is running. Only looks at the process list.
+pub fn machine_info() -> MachineInfo {
+    let host = run_ok("hostname", &[]).map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).or_else(|| std::env::var("COMPUTERNAME").ok()).unwrap_or_else(|| "máy này".into());
+    let running = if cfg!(target_os = "windows") {
+        run_ok("tasklist", &[]).map(|o| o.to_ascii_lowercase().contains("captureone")).unwrap_or(false)
+    } else if cfg!(target_os = "macos") {
+        run_ok("pgrep", &["-x", "Capture One"]).map(|o| !o.trim().is_empty()).unwrap_or(false)
+            || run_ok("pgrep", &["-f", "Capture One.app"]).map(|o| !o.trim().is_empty()).unwrap_or(false)
+    } else {
+        false
+    };
+    MachineInfo { host, os: std::env::consts::OS.to_string(), capture_one_running: running }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,6 +405,21 @@ mod tests {
         assert!(Path::new(&r.dest).starts_with(&dest));
         assert_eq!(safe_part("a/b\\c:d"), "a-b-c-d");
         assert_eq!(safe_part(".."), "");
+    }
+
+    #[test]
+    fn dir_stats_counts_photos_only() {
+        let d = tmp();
+        jpg(&d.join("a.jpg"), 8, 8);
+        fs::write(d.join("b.CR3"), b"raw").unwrap();
+        fs::write(d.join("c.txt"), b"x").unwrap();
+        fs::write(d.join("d.jpg.part"), b"x").unwrap();
+        let s = dir_stats(&d.to_string_lossy());
+        assert!(s.exists && s.count == 2 && s.latest_ms > 0);
+        assert!(!dir_stats(&d.join("no").to_string_lossy()).exists);
+        assert!(file_info(&d.join("a.jpg").to_string_lossy()).exists);
+        assert!(!file_info(&d.join("zz").to_string_lossy()).exists);
+        assert!(!machine_info().host.is_empty());
     }
 
     #[test]
