@@ -31,14 +31,19 @@ pub fn sha256_file(path: &Path) -> std::io::Result<String> {
 }
 
 /// Copy one file and confirm the copy hashes the same as the source.
+/// The source is read once: it is hashed while it is being written, then the copy is read back to compare.
 /// With `overwrite` false, an identical file already there is skipped and a different one is refused.
 /// With `overwrite` true, a different file is replaced (used when a photo is re-exported).
 pub fn copy_verified_opts(src: &Path, dst: &Path, overwrite: bool) -> Result<(String, bool), String> {
-    let src_hash = sha256_file(src).map_err(|e| format!("đọc thẻ lỗi: {e}"))?;
-    if dst.exists() {
-        let existing = sha256_file(dst).map_err(|e| format!("đọc NAS lỗi: {e}"))?;
-        if existing == src_hash {
-            return Ok((src_hash, true));
+    let src_len = fs::metadata(src).map_err(|e| format!("đọc thẻ lỗi: {e}"))?.len();
+    if let Ok(dm) = fs::metadata(dst) {
+        if dm.len() == src_len {
+            // only same-size files can be identical, so differing sizes never cost a hash
+            let a = sha256_file(src).map_err(|e| format!("đọc thẻ lỗi: {e}"))?;
+            let b = sha256_file(dst).map_err(|e| format!("đọc NAS lỗi: {e}"))?;
+            if a == b {
+                return Ok((a, true));
+            }
         }
         if !overwrite {
             return Err("trùng tên nhưng khác nội dung, không ghi đè".into());
@@ -47,8 +52,16 @@ pub fn copy_verified_opts(src: &Path, dst: &Path, overwrite: bool) -> Result<(St
     if let Some(parent) = dst.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("tạo thư mục lỗi: {e}"))?;
     }
-    let tmp = dst.with_extension("part");
-    fs::copy(src, &tmp).map_err(|e| format!("chép lỗi: {e}"))?;
+    let mut tmp_name = dst.as_os_str().to_os_string();
+    tmp_name.push(".part");
+    let tmp = PathBuf::from(tmp_name);
+    let src_hash = match stream_copy(src, &tmp) {
+        Ok(h) => h,
+        Err(e) => {
+            let _ = fs::remove_file(&tmp);
+            return Err(e);
+        }
+    };
     let dst_hash = sha256_file(&tmp).map_err(|e| format!("kiểm tra lỗi: {e}"))?;
     if dst_hash != src_hash {
         let _ = fs::remove_file(&tmp);
@@ -56,6 +69,22 @@ pub fn copy_verified_opts(src: &Path, dst: &Path, overwrite: bool) -> Result<(St
     }
     fs::rename(&tmp, dst).map_err(|e| format!("đổi tên lỗi: {e}"))?;
     Ok((src_hash, false))
+}
+
+fn stream_copy(src: &Path, tmp: &Path) -> Result<String, String> {
+    use std::io::Write;
+    let mut reader = File::open(src).map_err(|e| format!("đọc thẻ lỗi: {e}"))?;
+    let mut writer = BufWriter::with_capacity(1 << 20, File::create(tmp).map_err(|e| format!("ghi lỗi: {e}"))?);
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; 1 << 20];
+    loop {
+        let n = reader.read(&mut buf).map_err(|e| format!("đọc thẻ lỗi: {e}"))?;
+        if n == 0 { break; }
+        hasher.update(&buf[..n]);
+        writer.write_all(&buf[..n]).map_err(|e| format!("ghi lỗi (ổ đầy hoặc mất kết nối?): {e}"))?;
+    }
+    writer.flush().map_err(|e| format!("ghi lỗi: {e}"))?;
+    Ok(hex::encode(hasher.finalize()))
 }
 
 pub fn copy_verified(src: &Path, dst: &Path) -> Result<(String, bool), String> {

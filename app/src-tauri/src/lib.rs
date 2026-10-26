@@ -18,6 +18,8 @@ pub fn run() {
             media::scan_source,
             media::import_items,
             media::folder_size,
+            media::cancel_import,
+            media::find_cards,
             ops::scan_capture,
             ops::process_image,
             ops::deliver_file,

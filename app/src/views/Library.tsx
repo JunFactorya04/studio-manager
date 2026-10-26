@@ -165,7 +165,7 @@ function Tile({ a, selected, onSelect, onOpen }: { a: Asset; selected: boolean; 
         onClick={phone ? onOpen : onSelect}
         onDoubleClick={onOpen}
       >
-        {src ? <img src={src} alt="" loading="lazy" draggable={false} /> : null}
+        {src ? <img src={src} alt="" loading="lazy" decoding="async" draggable={false} /> : null}
       </button>
       <span className="tile-tag">{a.rawPath || !a.jpgPath ? "RAW" : "JPG"}</span>
       <button className={"tile-mark keep" + (a.mark === "keep" ? " on" : "")} aria-pressed={a.mark === "keep"} aria-label="Giữ" onClick={() => actions.updateAsset(a.id, { mark: a.mark === "keep" ? "none" : "keep" })}>

@@ -2,6 +2,7 @@
 // Views read with useStore(selector) and change data only through the actions below.
 
 import { useSyncExternalStore } from "react";
+import { makePersist } from "./persist";
 
 export type Stage = "quote" | "deposit" | "shoot" | "cull" | "edit" | "review" | "delivered";
 export type Channel = "line" | "messenger" | "zalo" | "email";
@@ -152,9 +153,10 @@ function load(): Data {
   return seed();
 }
 
+const persist = makePersist(KEY, () => state);
 function commit(next: Data) {
   state = next;
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage full or blocked */ }
+  persist();
   listeners.forEach((l) => l());
 }
 

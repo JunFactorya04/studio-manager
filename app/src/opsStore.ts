@@ -3,6 +3,7 @@
 // Everything here is local until the Studio Agent and the central server exist; see docs/ops.md.
 import { useSyncExternalStore } from "react";
 import { addDays, today, uid } from "./store";
+import { makePersist } from "./persist";
 
 export type EventStatus = "draft" | "live" | "done";
 export type SpotStatus = "active" | "idle" | "error";
@@ -177,9 +178,10 @@ function load(): OpsData {
   try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw) as OpsData; if (d.version === 1) return { ...d, engine: { ...defaultEngine(), ...d.engine } }; } } catch { /* storage unavailable */ }
   return seed();
 }
+const persist = makePersist(KEY, () => state);
 function commit(next: OpsData) {
   state = next;
-  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* full or blocked */ }
+  persist();
   listeners.forEach((l) => l());
 }
 const subscribe = (cb: () => void) => { listeners.add(cb); return () => { listeners.delete(cb); }; };

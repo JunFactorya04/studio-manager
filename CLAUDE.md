@@ -36,6 +36,11 @@ Việc dở:
 - Ý tưởng sau: Cmd+K tìm kiếm, menu chuột phải, Hoàn tác khi xóa, phím tắt; backend nhỏ để app tự xuất bản briefing.
 Sau đó: backend/đồng bộ nhiều máy, tích hợp tin nhắn thật, đăng nhập thật.
 
+## Hiệu năng (đã tối ưu)
+- Nhập ảnh (`media.rs`): chép song song 2 đến 4 luồng, đọc nguồn một lần (băm trong lúc ghi, đọc lại bản chép để kiểm), tiến độ theo dung lượng ≤10 lần/giây, nút dừng (`cancel_import`), tự tìm thẻ có DCIM (`find_cards`), ảnh xem nhanh xoay đúng chiều và tạo song song.
+- `Cargo.toml`: `[profile.dev.package."*"] opt-level = 3` vì `tauri dev` chạy debug làm băm SHA-256 và giải mã JPEG chậm hơn khoảng 20 lần.
+- `persist.ts`: lưu localStorage trễ 300 ms và xả khi ẩn/đóng cửa sổ, thay vì ghi cả kho dữ liệu mỗi thao tác.
+
 ## Build
 - Mac: bản chép ở `~/Desktop/studio-manager`; bấm đúp `Mo-Studio.command` (tự `git pull`, rồi chạy `tauri dev`). Cài lần đầu: `bash scripts/setup-mac.sh`. Chưa ký số (mở bằng chuột phải → Mở). Dùng Terminal tab mới, đừng gõ vào tab đang chạy app.
 - Làm việc: nhắn trong chat này, máy đám mây sửa và push; Mac chỉ cần bấm `Mo-Studio.command` để xem.

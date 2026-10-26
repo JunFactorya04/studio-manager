@@ -10,8 +10,9 @@ export const isDesktop = "__TAURI_INTERNALS__" in window;
 export interface ScanItem { base: string; raw?: string | null; jpg?: string | null; bytes: number }
 export interface ScanResult { items: ScanItem[]; pairs: number; rawOnly: number; jpgOnly: number; bytes: number }
 export interface ImportedItem { base: string; rawPath?: string | null; jpgPath?: string | null; thumbPath?: string | null; bytes: number; checksum: string; skipped: boolean }
-export interface ImportResult { imported: ImportedItem[]; failures: { file: string; error: string }[]; copied: number; skipped: number; verified: boolean }
-export interface Progress { done: number; total: number; file: string; bytesDone: number }
+export interface ImportResult { imported: ImportedItem[]; failures: { file: string; error: string }[]; copied: number; skipped: number; verified: boolean; cancelled: boolean }
+export interface Progress { done: number; total: number; file: string; bytesDone: number; bytesTotal: number }
+export interface CardInfo { name: string; path: string }
 
 export async function pickFolder(title: string): Promise<string | null> {
   if (!isDesktop) return null;
@@ -19,6 +20,8 @@ export async function pickFolder(title: string): Promise<string | null> {
   return typeof r === "string" ? r : null;
 }
 
+export const findCards = () => invoke<CardInfo[]>("find_cards");
+export const cancelImport = () => invoke<void>("cancel_import");
 export const scanSource = (dir: string) => invoke<ScanResult>("scan_source", { dir });
 
 export async function importItems(
