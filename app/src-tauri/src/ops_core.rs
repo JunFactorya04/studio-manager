@@ -9,6 +9,8 @@ use std::io::{BufReader, BufWriter, Read};
 use std::path::{Component, Path, PathBuf};
 use walkdir::WalkDir;
 
+use crate::grade::{self, Grade};
+
 pub const RAW_EXT: &[&str] = &["cr2", "cr3", "nef", "nrw", "arw", "srf", "raf", "dng", "orf", "rw2", "pef", "srw", "3fr", "iiq"];
 const PHOTO_EXT: &[&str] = &["jpg", "jpeg", "png", "tif", "tiff", "heic", "heif", "webp"];
 
@@ -161,7 +163,22 @@ pub struct Processed {
 }
 
 /// Resize a JPEG so its long edge is at most `long_edge` (never enlarges), keep the camera orientation, write `<out_dir>/<name>.jpg`.
-pub fn process_image(src: &Path, out_dir: &Path, long_edge: u32, quality: u8) -> Result<Processed, String> {
+/// Open a JPG, apply the EXIF rotation, and return it ready to use.
+pub fn open_oriented(src: &Path) -> Result<DynamicImage, String> {
+    let reader = ImageReader::open(src).map_err(|e| format!("không mở được ảnh: {e}"))?.with_guessed_format().map_err(|e| format!("không đọc được định dạng: {e}"))?;
+    let mut decoder = reader.into_decoder().map_err(|e| format!("ảnh hỏng hoặc chưa ghi xong: {e}"))?;
+    let orientation = decoder.orientation().ok();
+    let mut img = DynamicImage::from_decoder(decoder).map_err(|e| format!("ảnh hỏng hoặc chưa ghi xong: {e}"))?;
+    if let Some(o) = orientation {
+        img.apply_orientation(o);
+    }
+    Ok(img)
+}
+
+/// Resize to `long_edge`, apply colour grading, and write a JPG to `out_dir`.
+/// A sidecar next to the source photo (`<photo>.sm.json`, made in the editor) wins over `grade`
+/// (the spot's preset), so a hand-corrected photo keeps its own look.
+pub fn process_image(src: &Path, out_dir: &Path, long_edge: u32, quality: u8, grade: Option<&Grade>) -> Result<Processed, String> {
     let ext = ext_of(src);
     if RAW_EXT.contains(&ext.as_str()) {
         return Err("tệp RAW cần Capture One xử lý, app chỉ xử lý JPG".into());
@@ -172,13 +189,7 @@ pub fn process_image(src: &Path, out_dir: &Path, long_edge: u32, quality: u8) ->
     if long_edge < 200 || long_edge > 12000 {
         return Err("cạnh dài phải từ 200 đến 12000 px".into());
     }
-    let reader = ImageReader::open(src).map_err(|e| format!("không mở được ảnh: {e}"))?.with_guessed_format().map_err(|e| format!("không đọc được định dạng: {e}"))?;
-    let mut decoder = reader.into_decoder().map_err(|e| format!("ảnh hỏng hoặc chưa ghi xong: {e}"))?;
-    let orientation = decoder.orientation().ok();
-    let mut img = DynamicImage::from_decoder(decoder).map_err(|e| format!("ảnh hỏng hoặc chưa ghi xong: {e}"))?;
-    if let Some(o) = orientation {
-        img.apply_orientation(o);
-    }
+    let img = open_oriented(src)?;
     let (w, h) = (img.width(), img.height());
     let longest = w.max(h);
     let img = if longest > long_edge {
@@ -187,18 +198,28 @@ pub fn process_image(src: &Path, out_dir: &Path, long_edge: u32, quality: u8) ->
     } else {
         img
     };
+    let mut rgb = img.to_rgb8();
+    let effective = grade::read_sidecar(src).or_else(|| grade.cloned());
+    if let Some(g) = &effective {
+        grade::apply(&mut rgb, g)?;
+    }
     fs::create_dir_all(out_dir).map_err(|e| format!("tạo thư mục xuất lỗi: {e}"))?;
     let stem = src.file_stem().and_then(|s| s.to_str()).unwrap_or("photo");
     let out = out_dir.join(format!("{stem}.jpg"));
+    if let (Ok(a), Ok(b)) = (fs::canonicalize(src), fs::canonicalize(&out)) {
+        if a == b {
+            return Err("thư mục xuất trùng thư mục nguồn, sẽ ghi đè ảnh gốc".into());
+        }
+    }
     let tmp = out_dir.join(format!("{stem}.jpg.part"));
     {
         let file = File::create(&tmp).map_err(|e| format!("ghi file lỗi: {e}"))?;
         let mut enc = JpegEncoder::new_with_quality(BufWriter::new(file), quality.clamp(40, 100));
-        enc.encode_image(&img.to_rgb8()).map_err(|e| format!("mã hóa JPG lỗi: {e}"))?;
+        enc.encode_image(&rgb).map_err(|e| format!("mã hóa JPG lỗi: {e}"))?;
     }
     fs::rename(&tmp, &out).map_err(|e| format!("đổi tên lỗi: {e}"))?;
     let bytes = fs::metadata(&out).map(|m| m.len()).unwrap_or(0);
-    Ok(Processed { output: out.to_string_lossy().to_string(), width: img.width(), height: img.height(), bytes })
+    Ok(Processed { output: out.to_string_lossy().to_string(), width: rgb.width(), height: rgb.height(), bytes })
 }
 
 // ---------- delivery ----------
@@ -507,24 +528,75 @@ mod tests {
         jpg(&d.join("big.jpg"), 4000, 3000);
         jpg(&d.join("small.jpg"), 800, 600);
         let out = d.join("out");
-        let p = process_image(&d.join("big.jpg"), &out, 2400, 90).unwrap();
+        let p = process_image(&d.join("big.jpg"), &out, 2400, 90, None).unwrap();
         assert_eq!((p.width, p.height), (2400, 1800));
         assert!(Path::new(&p.output).is_file() && p.bytes > 0);
-        let q = process_image(&d.join("small.jpg"), &out, 2400, 90).unwrap();
+        let q = process_image(&d.join("small.jpg"), &out, 2400, 90, None).unwrap();
         assert_eq!((q.width, q.height), (800, 600));
         assert!(!out.join("big.jpg.part").exists());
+    }
+
+    fn mean_of(path: &str) -> f64 {
+        let img = image::open(path).unwrap().to_rgb8();
+        img.as_raw().iter().map(|&v| v as f64).sum::<f64>() / img.as_raw().len() as f64
+    }
+
+    #[test]
+    fn process_applies_preset_and_sidecar_wins_and_original_is_untouched() {
+        let d = tmp();
+        jpg(&d.join("a.jpg"), 800, 600);
+        let before = fs::read(d.join("a.jpg")).unwrap();
+        let out = d.join("out");
+        let plain = process_image(&d.join("a.jpg"), &out, 2400, 92, None).unwrap();
+        let m0 = mean_of(&plain.output);
+        // spot preset: brighter
+        let bright = Grade { exposure: 1.0, ..Grade::default() };
+        let withp = process_image(&d.join("a.jpg"), &out, 2400, 92, Some(&bright)).unwrap();
+        assert!(mean_of(&withp.output) > m0 + 10.0, "preset should brighten");
+        // sidecar (hand edit) overrides the preset: darker
+        grade::write_sidecar(&d.join("a.jpg"), &Grade { exposure: -1.0, ..Grade::default() }).unwrap();
+        let withs = process_image(&d.join("a.jpg"), &out, 2400, 92, Some(&bright)).unwrap();
+        assert!(mean_of(&withs.output) < m0 - 10.0, "sidecar should win over the preset");
+        assert_eq!(before, fs::read(d.join("a.jpg")).unwrap(), "original photo must not change");
+        // exporting into the source folder would overwrite the original: refused
+        let err = process_image(&d.join("a.jpg"), &d, 2400, 92, None).unwrap_err();
+        assert!(err.contains("trùng thư mục nguồn"), "{err}");
+        assert_eq!(before, fs::read(d.join("a.jpg")).unwrap());
+        // a missing LUT fails clearly (clear the sidecar first, it would win over the preset)
+        grade::write_sidecar(&d.join("a.jpg"), &Grade::default()).unwrap();
+        let bad = Grade { lut_path: d.join("none.cube").to_string_lossy().to_string(), ..Grade::default() };
+        assert!(process_image(&d.join("a.jpg"), &out, 2400, 92, Some(&bad)).unwrap_err().contains("LUT"));
+    }
+
+    #[test]
+    fn preview_and_listing_work() {
+        let d = tmp();
+        jpg(&d.join("b.jpg"), 1200, 800);
+        jpg(&d.join("a.JPG"), 600, 400);
+        fs::write(d.join("note.txt"), b"x").unwrap();
+        fs::write(d.join("._junk.jpg"), b"x").unwrap();
+        grade::write_sidecar(&d.join("a.JPG"), &Grade { contrast: 20.0, ..Grade::default() }).unwrap();
+        let list = grade::list_photos(&d.to_string_lossy()).unwrap();
+        assert_eq!(list.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(), vec!["a.JPG", "b.jpg"]);
+        assert!(list[0].edited && !list[1].edited);
+        let bytes = grade::render_preview(&d.join("b.jpg"), 400, &Grade { exposure: 0.5, ..Grade::default() }).unwrap();
+        let img = image::load_from_memory(&bytes).unwrap();
+        assert_eq!((img.width(), img.height()), (400, 267));
+        let t = grade::render_thumb(&d.join("b.jpg"), 240).unwrap();
+        assert_eq!(image::load_from_memory(&t).unwrap().width(), 240);
+        assert!(grade::render_preview(&d.join("missing.jpg"), 400, &Grade::default()).is_err());
     }
 
     #[test]
     fn process_rejects_raw_corrupt_and_bad_size() {
         let d = tmp();
         fs::write(d.join("x.cr3"), b"raw").unwrap();
-        assert!(process_image(&d.join("x.cr3"), &d.join("o"), 2400, 90).unwrap_err().contains("RAW"));
+        assert!(process_image(&d.join("x.cr3"), &d.join("o"), 2400, 90, None).unwrap_err().contains("RAW"));
         fs::write(d.join("broken.jpg"), b"not a jpeg").unwrap();
-        assert!(process_image(&d.join("broken.jpg"), &d.join("o"), 2400, 90).is_err());
+        assert!(process_image(&d.join("broken.jpg"), &d.join("o"), 2400, 90, None).is_err());
         jpg(&d.join("ok.jpg"), 10, 10);
-        assert!(process_image(&d.join("ok.jpg"), &d.join("o"), 50, 90).is_err());
-        assert!(process_image(&d.join("missing.jpg"), &d.join("o"), 2400, 90).is_err());
+        assert!(process_image(&d.join("ok.jpg"), &d.join("o"), 50, 90, None).is_err());
+        assert!(process_image(&d.join("missing.jpg"), &d.join("o"), 2400, 90, None).is_err());
     }
 
     #[test]

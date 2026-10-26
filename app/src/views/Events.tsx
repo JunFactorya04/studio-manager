@@ -6,7 +6,7 @@ import { BriefSheet } from "../components/BriefSheet";
 import { fmtDate, today } from "../store";
 import { pickFolder, isDesktop } from "../native";
 import {
-  EVENT_STATUS, PHASE, SPOT_STATUS, opsActions, spotStats, useOps,
+  EVENT_STATUS, PHASE, SPOT_STATUS, opsActions, presetsOf, spotStats, useOps,
   type EventStatus, type OpsEvent, type Spot, type SpotPhase, type SpotStatus,
 } from "../opsStore";
 import type { Go, Route } from "../nav";
@@ -158,7 +158,7 @@ function EventForm({ event, onClose, onSaved }: { event?: OpsEvent; onClose: () 
 
 function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; onClose: () => void }) {
   const o = useOps();
-  const [f, setF] = useState({ name: spot?.name ?? "", captureDir: spot?.captureDir ?? "", outputDir: spot?.outputDir ?? "", c1Session: spot?.c1Session ?? "", recipe: spot?.recipe ?? "JPEG 2400px", photographerId: spot?.photographerId ?? "", status: (spot?.status ?? "idle") as SpotStatus, arrival: spot?.arrival ?? "", lens: spot?.lens ?? "", mapsUrl: spot?.mapsUrl ?? "", tip: spot?.tip ?? "", phase: (spot?.phase ?? "") as SpotPhase | "", coords: spot?.lat !== undefined && spot?.lon !== undefined ? `${spot.lat}, ${spot.lon}` : "" });
+  const [f, setF] = useState({ name: spot?.name ?? "", captureDir: spot?.captureDir ?? "", outputDir: spot?.outputDir ?? "", c1Session: spot?.c1Session ?? "", recipe: spot?.recipe ?? "JPEG 2400px", presetId: spot?.presetId ?? "", photographerId: spot?.photographerId ?? "", status: (spot?.status ?? "idle") as SpotStatus, arrival: spot?.arrival ?? "", lens: spot?.lens ?? "", mapsUrl: spot?.mapsUrl ?? "", tip: spot?.tip ?? "", phase: (spot?.phase ?? "") as SpotPhase | "", coords: spot?.lat !== undefined && spot?.lon !== undefined ? `${spot.lat}, ${spot.lon}` : "" });
   const [err, setErr] = useState("");
   const browse = async (key: "captureDir" | "outputDir") => { const p = await pickFolder(key === "captureDir" ? "Thư mục nhận ảnh của điểm chụp" : "Thư mục ảnh đã xuất"); if (p) setF((x) => ({ ...x, [key]: p })); };
   const save = () => {
@@ -170,8 +170,8 @@ function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; on
       if (!m || Math.abs(+m[1]) > 90 || Math.abs(+m[2]) > 180) return setErr("Tọa độ dạng: 25.1700, 121.4400");
       lat = +m[1]; lon = +m[2];
     }
-    if (spot) opsActions.updateSpot(spot.id, { ...rest, lat, lon, phase: phase || undefined, name: f.name.trim() });
-    else opsActions.addSpot({ ...rest, lat, lon, phase: phase || undefined, name: f.name.trim(), eventId });
+    if (spot) opsActions.updateSpot(spot.id, { ...rest, presetId: rest.presetId || undefined, lat, lon, phase: phase || undefined, name: f.name.trim() });
+    else opsActions.addSpot({ ...rest, presetId: rest.presetId || undefined, lat, lon, phase: phase || undefined, name: f.name.trim(), eventId });
     onClose();
   };
   const dirField = (label: string, key: "captureDir" | "outputDir") => (
@@ -191,6 +191,12 @@ function SpotForm({ eventId, spot, onClose }: { eventId: string; spot?: Spot; on
         <Field label="Session Capture One"><input className="input" value={f.c1Session} onChange={(e) => setF({ ...f, c1Session: e.target.value })} placeholder="Ten.cosessiondb" /></Field>
         <Field label="Recipe"><input className="input" value={f.recipe} onChange={(e) => setF({ ...f, recipe: e.target.value })} /></Field>
       </div>
+      <Field label="Preset màu (áp khi xử lý ảnh)">
+        <select className="select" value={f.presetId} onChange={(e) => setF({ ...f, presetId: e.target.value })}>
+          <option value="">Không chỉnh màu</option>
+          {presetsOf(o).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
       <div className="f-row">
         <Field label="Photographer">
           <select className="select" value={f.photographerId} onChange={(e) => setF({ ...f, photographerId: e.target.value })}>

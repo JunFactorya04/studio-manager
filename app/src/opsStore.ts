@@ -3,6 +3,7 @@
 // Everything here is local until the Studio Agent and the central server exist; see docs/ops.md.
 import { useSyncExternalStore } from "react";
 import { addDays, today, uid } from "./store";
+import { BUILTIN_PRESETS, type Grade, type GradePreset } from "./grade";
 import { makePersist } from "./persist";
 
 export type EventStatus = "draft" | "live" | "done";
@@ -37,7 +38,8 @@ export const emptyBrief = (): Brief => ({
 export interface OpsEvent { id: string; name: string; date: string; endDate: string; venue: string; status: EventStatus; note: string; brief?: Brief; deliveryDir?: string; demo?: boolean } // deliveryDir: where finished photos are copied for the client/organizer
 export interface Spot {
   id: string; eventId: string; name: string; captureDir: string; outputDir: string;
-  c1Session: string; recipe: string; photographerId: string; status: SpotStatus; demo?: boolean;
+  c1Session: string; recipe: string; presetId?: string; photographerId: string; status: SpotStatus; demo?: boolean; // presetId: colour preset applied when photos are processed
+ 
   arrival?: string; lens?: string; mapsUrl?: string; tip?: string; lat?: number; lon?: number; phase?: SpotPhase; // briefing: where and when the photographer should be
 }
 export interface Photographer { id: string; name: string; phone: string; email: string; note: string; demo?: boolean }
@@ -68,6 +70,7 @@ export interface OpsData {
   jobs: Job[]; deliveries: Delivery[]; logs: LogEntry[]; agent: AgentState;
   engine?: EngineSettings;
   bookings?: Booking[];
+  presets?: GradePreset[]; // colour presets (built-ins are used until the first change)
 }
 
 export const EVENT_STATUS: Record<EventStatus, [string, string]> = { draft: ["Nháp", "gray"], live: ["Đang diễn ra", "green"], done: ["Đã kết thúc", "blue"] };
@@ -187,6 +190,7 @@ function commit(next: OpsData) {
 const subscribe = (cb: () => void) => { listeners.add(cb); return () => { listeners.delete(cb); }; };
 export const useOps = () => useSyncExternalStore(subscribe, () => state);
 export const getOps = () => state;
+export const presetsOf = (d: OpsData): GradePreset[] => d.presets ?? BUILTIN_PRESETS;
 
 export const logLine = (kind: LogKind, text: string, eventId?: string, spotId?: string, ref?: string): LogEntry =>
   ({ id: uid(), at: new Date().toISOString().slice(0, 19), kind, text, eventId, spotId, ref });
@@ -232,6 +236,16 @@ export const opsActions = {
   },
   removeJobs(ids: string[]) { const set = new Set(ids.filter((i) => !state.jobs.find((j) => j.id === i)?.keep)); commit({ ...state, jobs: state.jobs.filter((j) => !set.has(j.id)), deliveries: state.deliveries.filter((d) => !set.has(d.jobId)) }); },
   replaceAll(d: OpsData) { commit(d); },
+  savePreset(name: string, grade: Grade, id?: string) {
+    const list = presetsOf(state);
+    const p: GradePreset = { id: id ?? uid(), name: name.trim() || "Preset", grade: { ...grade } };
+    const next = id && list.some((x) => x.id === id) ? list.map((x) => (x.id === id ? { ...p, builtin: undefined } : x)) : [...list, p];
+    commit({ ...state, presets: next, logs: capLogs([logLine("config", `Lưu preset màu ${p.name}`), ...state.logs]) });
+    return p;
+  },
+  deletePreset(id: string) {
+    commit({ ...state, presets: presetsOf(state).filter((x) => x.id !== id), spots: state.spots.map((s) => (s.presetId === id ? { ...s, presetId: undefined } : s)) });
+  },
   addEvent(e: Omit<OpsEvent, "id">) {
     const ev = { ...e, id: uid() };
     commit({ ...state, events: [ev, ...state.events], logs: [logLine("config", `Tạo sự kiện ${ev.name}`, ev.id), ...state.logs] });

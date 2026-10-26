@@ -1,5 +1,6 @@
 // Entry point shared by desktop (main.rs) and mobile builds.
 
+mod grade;
 mod media;
 mod ops;
 mod ops_core;
@@ -33,7 +34,13 @@ pub fn run() {
             ops::c1_process,
             ops::c1_dictionary,
             ops::drive_folder,
-            ops::read_text_file
+            ops::read_text_file,
+            ops::list_photos,
+            ops::grade_preview,
+            ops::photo_thumb,
+            ops::read_grade,
+            ops::write_grades,
+            ops::check_lut
         ])
         .run(tauri::generate_context!())
         .expect("error while running Studio Manager");

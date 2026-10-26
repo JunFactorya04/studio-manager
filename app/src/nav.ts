@@ -1,6 +1,6 @@
 import type { IconName } from "./components/Icon";
 
-export type View = "dashboard" | "calendar" | "projects" | "library" | "inbox" | "finance" | "more" | "ops" | "events" | "ingest" | "queue" | "delivery" | "c1" | "agent" | "select" | "booking" | "crew" | "report" | "logs" | "opsset";
+export type View = "dashboard" | "calendar" | "projects" | "library" | "inbox" | "finance" | "more" | "ops" | "events" | "ingest" | "queue" | "grade" | "delivery" | "c1" | "agent" | "select" | "booking" | "crew" | "report" | "logs" | "opsset";
 
 export interface Route {
   view: View;
@@ -29,6 +29,7 @@ export const OPS_NAV: { view: View; label: string; short: string; icon: IconName
   { view: "events", label: "Sự kiện & Spot", short: "Sự kiện", icon: "flag" },
   { view: "ingest", label: "Nhận ảnh", short: "Nhận ảnh", icon: "download" },
   { view: "queue", label: "Xử lý ảnh", short: "Xử lý", icon: "refresh" },
+  { view: "grade", label: "Chỉnh ảnh", short: "Chỉnh ảnh", icon: "eye" },
   { view: "delivery", label: "Giao ảnh", short: "Giao ảnh", icon: "send" },
   { view: "c1", label: "Capture One", short: "Capture One", icon: "photo" },
   { view: "agent", label: "Studio Agent", short: "Agent", icon: "settings" },

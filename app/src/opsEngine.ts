@@ -6,7 +6,7 @@
 
 import { useSyncExternalStore } from "react";
 import { deliverFile, isDesktop, machineInfo, processImage, scanCapture, type DirScan } from "./native";
-import { getOps, logLine, opsActions, type Job } from "./opsStore";
+import { getOps, logLine, opsActions, presetsOf, type Job } from "./opsStore";
 import { uid } from "./store";
 
 export interface DirState { dir: string; ok: boolean; error?: string; jpg: number; raw: number; lastScan: number }
@@ -82,7 +82,8 @@ async function runJob(id: string) {
   opsActions.patchJob(id, { status: "running", error: undefined });
   try {
     if (!spot?.outputDir.trim()) throw new Error("Điểm chụp chưa đặt thư mục ảnh xuất");
-    const r = await processImage(job.source, spot.outputDir.trim(), longEdgeOf(spot.recipe), o.engine?.quality ?? 90);
+    const preset = spot.presetId ? presetsOf(o).find((x) => x.id === spot.presetId) : undefined;
+    const r = await processImage(job.source, spot.outputDir.trim(), longEdgeOf(spot.recipe), o.engine?.quality ?? 90, preset?.grade);
     const secs = Math.max(1, Math.round((Date.now() - t0) / 1000));
     opsActions.patchJob(id, { status: "succeeded", output: r.output, durationSec: secs, attempts: job.attempts + 1, retryAt: undefined, error: undefined }, logLine("export", `Xuất ${job.file} (${r.width}×${r.height})`, job.eventId, job.spotId, id));
     const ev = getOps().events.find((e) => e.id === job.eventId);
@@ -92,7 +93,7 @@ async function runJob(id: string) {
   } catch (e) {
     const attempts = job.attempts + 1;
     const msg = errText(e);
-    const final = attempts >= max || /RAW|định dạng|chưa đặt thư mục/.test(msg); // retrying cannot fix these
+    const final = attempts >= max || /RAW|định dạng|chưa đặt thư mục|LUT|trùng thư mục nguồn/.test(msg); // retrying cannot fix these
     opsActions.patchJob(id, { status: final ? "failed" : "pending", attempts, error: msg, retryAt: final ? undefined : Date.now() + backoffMs(attempts), durationSec: Math.round((Date.now() - t0) / 1000) },
       logLine(final ? "error" : "retry", final ? `${job.file}: ${msg}` : `Thử lại ${job.file} (lần ${attempts}/${max}): ${msg}`, job.eventId, job.spotId, id));
   }

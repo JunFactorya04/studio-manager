@@ -12,6 +12,7 @@ import { Finance } from "./views/Finance";
 import { Calendar } from "./views/Calendar";
 import { Login } from "./views/Login";
 import { More } from "./views/More";
+import { GradeView } from "./views/Grade";
 import { OpsOverview } from "./views/OpsOverview";
 import { Delivery, Ingest, Queue } from "./views/OpsPipeline";
 import { Agent, CaptureOne } from "./views/OpsMonitor";
@@ -69,6 +70,7 @@ export default function App() {
   else if (route.view === "agent") screen = <Agent />;
   else if (route.view === "ingest") screen = <Ingest go={go} />;
   else if (route.view === "queue") screen = <Queue go={go} />;
+  else if (route.view === "grade") screen = <GradeView />;
   else if (route.view === "delivery") screen = <Delivery go={go} />;
   else if (route.view === "events") screen = <Events key={route.eventId ?? ""} go={go} route={route} />;
   else screen = <Dashboard go={go} />;

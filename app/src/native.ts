@@ -4,6 +4,7 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
+import type { Grade } from "./grade";
 
 export const isDesktop = "__TAURI_INTERNALS__" in window;
 
@@ -58,7 +59,7 @@ export interface Delivered { dest: string; bytes: number; checksum: string; skip
 export interface DirCheck { exists: boolean; writable: boolean }
 
 export const scanCapture = (dirs: string[]) => invoke<DirScan[]>("scan_capture", { dirs });
-export const processImage = (src: string, outDir: string, longEdge: number, quality = 90) => invoke<Processed>("process_image", { src, outDir, longEdge, quality });
+export const processImage = (src: string, outDir: string, longEdge: number, quality = 90, grade?: Grade) => invoke<Processed>("process_image", { src, outDir, longEdge, quality, grade: grade ?? null });
 export const deliverFile = (src: string, destDir: string, sub: string) => invoke<Delivered>("deliver_file", { src, destDir, sub });
 export const checkDir = (path: string) => invoke<DirCheck>("check_dir", { path });
 export interface DirStats { exists: boolean; count: number; bytes: number; latestMs: number }
@@ -84,3 +85,14 @@ export async function pickFiles(title: string, extensions: string[], defaultPath
 }
 export const driveFolder = () => invoke<string | null>("drive_folder");
 export const readTextFile = (path: string) => invoke<string>("read_text_file", { path });
+
+// ---------- photo editor (JPG colour grading) ----------
+export interface PhotoEntry { path: string; name: string; size: number; modifiedMs: number; edited: boolean }
+export const listPhotos = (dir: string) => invoke<PhotoEntry[]>("list_photos", { dir });
+export const readGrade = (path: string) => invoke<Grade | null>("read_grade", { path });
+export const writeGrades = (paths: string[], grade: Grade) => invoke<number>("write_grades", { paths, grade });
+export const checkLut = (path: string) => invoke<string>("check_lut", { path });
+const jpegUrl = (buf: ArrayBuffer | number[]) => URL.createObjectURL(new Blob([buf instanceof ArrayBuffer ? buf : new Uint8Array(buf)], { type: "image/jpeg" }));
+/** Graded preview as a blob URL. Revoke it with URL.revokeObjectURL when replaced. */
+export const gradePreview = async (path: string, edge: number, grade: Grade) => jpegUrl(await invoke<ArrayBuffer>("grade_preview", { path, edge, grade }));
+export const photoThumb = async (path: string, edge = 240) => jpegUrl(await invoke<ArrayBuffer>("photo_thumb", { path, edge }));
